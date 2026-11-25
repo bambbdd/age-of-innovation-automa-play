@@ -1,0 +1,20 @@
+{
+  "A": {
+    "lake": ["lake", "swamp", "forest", "plains", "wasteland", "mountain", "desert"],
+    "plains": ["plains", "desert", "swamp", "wasteland", "forest", "lake", "mountain"],
+    "forest": ["forest", "lake", "mountain", "swamp", "desert", "wasteland", "plains"],
+    "wasteland": ["wasteland", "mountain", "desert", "forest", "swamp", "plains", "lake"],
+    "swamp": ["swamp", "plains", "lake", "desert", "mountain", "forest", "wasteland"],
+    "desert": ["desert", "wasteland", "plains", "mountain", "lake", "swamp", "forest"],
+    "mountain": ["mountain", "forest", "wasteland", "lake", "plains", "desert", "swamp"]
+  },
+  "B": {
+    "lake": ["lake", "forest", "swamp", "mountain", "desert", "plains", "wasteland"],
+    "plains": ["plains", "swamp", "desert", "lake", "mountain", "wasteland", "forest"],
+    "forest": ["forest", "mountain", "lake", "wasteland", "plains", "swamp", "desert"],
+    "wasteland": ["wasteland", "desert", "mountain", "plains", "lake", "forest", "swamp"],
+    "swamp": ["swamp", "lake", "plains", "forest", "wasteland", "desert", "mountain"],
+    "desert": ["desert", "plains", "wasteland", "swamp", "forest", "mountain", "lake"],
+    "mountain": ["mountain", "wasteland", "forest", "desert", "swamp", "lake", "plains"]
+  }
+}
