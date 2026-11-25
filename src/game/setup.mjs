@@ -34,6 +34,10 @@ function shuffle(list, random) {
 
 const ids = count => Array.from({ length: count }, (_, i) => i + 1)
 
+export function shuffleWithSeed(list, seed) {
+  return shuffle(list, seededRandom(seed))
+}
+
 // Orders run from top to bottom. The independent setup draw returns to the 14-card pool.
 export function prepareDeck(difficulty, reserveOrder, playOrder) {
   if (!Object.hasOwn(difficultyLevels, difficulty)) throw new Error('Unknown difficulty')
