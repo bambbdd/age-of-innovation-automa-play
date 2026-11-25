@@ -1,0 +1,12 @@
+{
+  "name": "age-of-innovation-automa-play",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "render:board": "node scripts/render-board.mjs"
+  },
+  "devDependencies": {
+    "@napi-rs/canvas": "0.1.100"
+  }
+}

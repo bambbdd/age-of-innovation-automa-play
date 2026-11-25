@@ -1,0 +1,8 @@
+/references/rules/
+/age-of-innovation-solo-helper/
+/skills/
+node_modules/
+dist/
+coverage/
+.DS_Store
+Thumbs.db

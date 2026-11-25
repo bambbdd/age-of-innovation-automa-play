@@ -1,0 +1,86 @@
+[
+  {
+    "id": 1, "starter": true, "canPass": false,
+    "actions": ["upgrade","gain-victory-points"], "points": "X",
+    "support": {"structure": "marked", "terrainPriority": "A", "direction": "right-down", "count": 2, "science": "scoring-tile", "bonus": "left"},
+    "placement": {"marked": "A", "unmarked": "B"}
+  },
+  {
+    "id": 2, "starter": true, "canPass": true,
+    "actions": ["block-power-book-action","gain-victory-points"], "points": "X",
+    "support": {"structure": "marked", "terrainPriority": "B", "direction": "left-up", "count": 1, "science": "catch-up", "bonus": "middle"},
+    "placement": {"marked": "A", "unmarked": "B"}
+  },
+  {
+    "id": 3, "starter": true, "canPass": false,
+    "actions": ["send-scholar"], "points": 0,
+    "support": {"structure": "unmarked-reaching", "terrainPriority": "B", "direction": "right-down", "count": 3, "science": "scoring-tile", "bonus": "right"},
+    "placement": {"marked": "A", "unmarked": "B"}
+  },
+  {
+    "id": 4, "starter": true, "canPass": true,
+    "actions": ["transform-and-build"], "points": 0,
+    "support": {"structure": "unmarked", "terrainPriority": "B", "direction": "left-up", "count": 3, "science": "catch-up", "bonus": "left"},
+    "placement": {"marked": "A", "unmarked": "B"}
+  },
+  {
+    "id": 5, "starter": true, "canPass": false,
+    "actions": ["faction-action"], "points": 0,
+    "support": {"structure": "marked-reaching", "terrainPriority": "A", "direction": "left-up", "count": 2, "science": "catch-up", "bonus": "middle"},
+    "placement": {"marked": "A", "unmarked": "B"}
+  },
+  {
+    "id": 6, "starter": true, "canPass": false,
+    "actions": ["take-innovation","advance-science-discipline"], "points": 0,
+    "support": {"structure": "unmarked", "terrainPriority": "A", "direction": "right-down", "count": 1, "science": "catch-up", "bonus": "right"},
+    "placement": {"marked": "C", "unmarked": "D"}
+  },
+  {
+    "id": 7, "starter": false, "canPass": true,
+    "actions": ["faction-action"], "points": 0,
+    "support": {"structure": "unmarked-reaching", "terrainPriority": "B", "direction": "right-down", "count": 4, "science": "catch-up", "bonus": "left"},
+    "placement": {"marked": "C", "unmarked": "D"}
+  },
+  {
+    "id": 8, "starter": false, "canPass": true,
+    "actions": ["send-scholar","gain-victory-points"], "points": 3,
+    "support": {"structure": "marked-reaching", "terrainPriority": "A", "direction": "right-down", "count": 1, "science": "catch-up", "bonus": "middle"},
+    "placement": {"marked": "C", "unmarked": "D"}
+  },
+  {
+    "id": 9, "starter": false, "canPass": true,
+    "actions": ["send-scholar","gain-victory-points"], "points": 3,
+    "support": {"structure": "marked-reaching", "terrainPriority": "A", "direction": "right-down", "count": 2, "science": "catch-up", "bonus": "right"},
+    "placement": {"marked": "C", "unmarked": "D"}
+  },
+  {
+    "id": 10, "starter": false, "canPass": true,
+    "actions": ["upgrade","gain-victory-points"], "points": 2,
+    "support": {"structure": "unmarked-reaching", "terrainPriority": "B", "direction": "left-up", "count": 4, "science": "catch-up", "bonus": "left"},
+    "placement": {"marked": "C", "unmarked": "D"}
+  },
+  {
+    "id": 11, "starter": false, "canPass": true,
+    "actions": ["upgrade","gain-victory-points"], "points": "X",
+    "support": {"structure": "unmarked-reaching", "terrainPriority": "A", "direction": "left-up", "count": 2, "science": "catch-up", "bonus": "middle"},
+    "placement": {"marked": "E", "unmarked": "F"}
+  },
+  {
+    "id": 12, "starter": false, "canPass": true,
+    "actions": ["block-power-book-action","gain-victory-points"], "points": "X",
+    "support": {"structure": "unmarked-reaching", "terrainPriority": "A", "direction": "left-up", "count": 3, "science": "catch-up", "bonus": "right"},
+    "placement": {"marked": "E", "unmarked": "F"}
+  },
+  {
+    "id": 13, "starter": false, "canPass": true,
+    "actions": ["transform-and-build","gain-victory-points"], "points": 3,
+    "support": {"structure": "marked-reaching", "terrainPriority": "B", "direction": "left-up", "count": 1, "science": "catch-up", "bonus": "left"},
+    "placement": {"marked": "E", "unmarked": "F"}
+  },
+  {
+    "id": 14, "starter": false, "canPass": true,
+    "actions": ["block-power-book-action","gain-victory-points"], "points": "X",
+    "support": {"structure": "marked-reaching", "terrainPriority": "B", "direction": "right-down", "count": 3, "science": "catch-up", "bonus": "middle"},
+    "placement": {"marked": "E", "unmarked": "F"}
+  }
+]
