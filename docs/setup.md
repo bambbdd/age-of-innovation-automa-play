@@ -40,10 +40,10 @@ const position = placeStartingBuildings(deal, {
 
 세 종족의 인쇄된 영문 카드와 업적 조건을 대조했다. [종족 카드 원본 사진](https://www.reddit.com/r/soloboardgaming/comments/1aujnea/comment/krkt6yl/) · [업적 카드 원본 사진](https://www.reddit.com/r/soloboardgaming/comments/1aujnea/comment/krkt7za/)
 
-## 보드 이미지 재생성
+## 보드와 구성물 이미지
 
-`public/boards/terrain-atlas.webp`는 내장 ImageGen으로 만든 원화다. `npm run render:board`는 이를 좌표에 맞춰 `public/boards/small-board.png`로 그린다. 렌더러는 개발 의존성 `@napi-rs/canvas`를 사용한다. 한국어 문자에는 맑은 고딕 또는 Noto Sans KR을 사용한다. 브라우저에서는 `drawSmallBoard(ctx, atlas)`로 같은 지도를 그리고 `hexCenter(cell)`로 기물을 정렬할 수 있다.
+`public/boards/terrain-atlas.webp`는 헬퍼의 원본 지형 타일 일곱 장에서 잘라낸 지형과 짙은 강 색을 담는다. `npm run render:board`는 이 파일과 보드 좌표로 지도 PNG를 다시 그린다.
 
-원화 생성 프롬프트
+`public/components/`의 항해, 과학 분야, 종족, 지형, 혁신, 궁전, 적성, 라운드 보너스·득점, 책 행동 이미지는 [오토마 헬퍼의 원본 자산](https://github.com/brdgm/age-of-innovation-solo-helper/tree/bde1baec322d97b1fc022df1e34e03f7818c4521/src/assets)에서 가져왔다. 과학 판면과 책은 영문 기본 규칙서 2쪽, 나무 기물과 자원은 3쪽, 도시 타일과 파워 행동은 23쪽의 구성물 그림을 사용한다.
 
-> Create one production terrain texture atlas for an original illustrated hex-board game, wide 2:1 image, exactly four equal columns by two equal rows, eight edge-to-edge square paintings, no gutters, frames, hex outlines, letters, symbols or words. Straight orthographic overhead, finely etched pen-and-watercolour cartography with readable centered terrain motifs. Top row left to right: rich green conifer forest canopies; cool silver-gray rocky mountains; bright golden-yellow sand dunes; warm brown ploughed plains. Bottom row left to right: sapphire-blue inland lake rimmed by green reeds; warm red-ochre badlands and eroded mesas; near-black slate marsh with muted olive reeds; luminous turquoise flowing river surface, only water with fine silver currents. Keep terrains clearly distinguishable at thumbnail size; full bleed land or water to every edge. No buildings, bridges, playing pieces or game typography.
+삽당 도구 1·2·3개 도안은 [공식 영문 규칙서 11쪽](https://www.feuerland-spiele.de/fileadmin/game/Age_of_Innovation/Age_of_Innovation_rules_EN_V1-1_low.pdf#page=11)의 지형 변환 트랙에서 각 비용 칸을 잘라 사용한다.
