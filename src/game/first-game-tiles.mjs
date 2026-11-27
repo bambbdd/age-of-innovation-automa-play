@@ -67,10 +67,14 @@ export function innovationPoints(position, id) {
 
 export function innovationCost(position, id) {
   const index = position.deal.innovations.indexOf(id)
-  const count = position.innovations.player.length
-  if (index < 0 || !position.innovations.pool.includes(id) || count >= 3) {
+  if (index < 0 || !position.innovations.pool.includes(id) || position.innovations.player.length >= 3) {
     throw new Error('개발할 수 없는 혁신입니다.')
   }
+  return innovationSlotCost(position,index)
+}
+
+export function innovationSlotCost(position,index) {
+  const count = position.innovations.player.length
   const books = { banking: 0, law: 0, engineering: 0, medicine: 0 }
   // Upper row shares two disciplines per space. Each lower space has a single discipline.
   if (index < 2) {
@@ -143,6 +147,10 @@ export const competencyRewards = {
 export function competencyLocation(position, id) {
   const index = position.deal.competencies.indexOf(id)
   if (index < 0 || position.competencies.includes(id)) throw new Error('선택할 수 없는 적성 타일입니다.')
+  return competencySlot(index)
+}
+
+export function competencySlot(index) {
   const books = Math.floor(index / 4)
   return { discipline: disciplines[index % 4], levels: 3 - books, books }
 }

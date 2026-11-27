@@ -1,7 +1,7 @@
 import { createSetupDeal, placeStartingBuildings } from './setup.mjs'
 import { roundTiles, finalTiles, roundScoring } from './score-tiles.mjs'
 import { areaScoring, foundCities, terrainAt, terraformAndBuild, upgradePlayerBuilding,
-  placeBridge, openBuildHexes } from './board-rules.mjs'
+  placeBridge } from './board-rules.mjs'
 import { smallBoard } from './small-board.mjs'
 import { startBot, botTurn, prepareNextBotRound, applyBotPowerGain, botEndgamePoints, checkBotRoundEnd } from './automa-turn.mjs'
 import * as economy from './player-economy.mjs'
@@ -179,7 +179,7 @@ function grantCity(s, location) {
   addLog(s,`${location} 도시 설립`)
 }
 
-const tileContext = { reward, advance, score, grantCity, buildingScore, transform, bridge, cities }
+const tileContext = { reward, advance, score, grantCity, buildingScore, bridge, cities }
 
 function buildingScore(s, hex, type, {neutral=false}={}) {
   score(s, type === 'university' || type === 'palace' ? 'palace-or-university' : type)
@@ -328,18 +328,12 @@ function resolveChoice(s,a) {
       break
     }
     case 'tower': {
-      const reach = openBuildHexes(s,s.buildings.filter(b=>b.owner==='player'),economy.effectiveSailing(s))
+      const sites=effects.neutralSites(s)
       if (a.skip) {
-        const possible = reach.some(hex => {
-          if (terrainAt(s,hex) === s.playerTerrain) return true
-          const {spades} = terraformAndBuild(s,hex,economy.effectiveSailing(s),{build:false})
-          return economy.buildingCost(s,hex,null,spades).tools <= s.resources.tools
-        })
-        check(!possible,'배치할 수 있는 칸에 탑을 놓으세요.')
+        check(!sites.length,'배치할 수 있는 칸에 탑을 놓으세요.')
         break
       }
-      check(reach.includes(a.hex),'도달할 수 있는 빈 땅에 놓으세요.')
-      if (terrainAt(s,a.hex) !== s.playerTerrain) transform(s,{hex:a.hex,build:false})
+      check(sites.includes(a.hex),'도달할 수 있는 빈 고향 지형에 탑을 놓으세요.')
       s.buildings.push({hex:a.hex,owner:'player',building:'tower',neutral:true})
       cities(s)
       break
@@ -438,14 +432,21 @@ function pass(s,id) {
 }
 
 // All commands are atomic: a failed payment or illegal destination leaves the prior state usable.
-export function play(previous,a) {
+export function play(previous,a,{replayPlacedNeutral=false}={}) {
   check(previous.phase !== 'finished','이미 종료된 대국입니다.')
   const s = structuredClone(previous)
   if (s.bookChoices) {
     check(a.kind === 'choose-book','받을 책의 분야를 선택하세요.')
     economy.chooseBook(s,a.discipline)
-  } else if (s.pending.length) resolveChoice(s,a)
-  else if (s.actor === 'automa') {
+  } else if (s.pending.length) {
+    const p=s.pending[0]
+    // Earlier journals may contain a paid terraform bundled with a neutral placement.
+    if (replayPlacedNeutral && a.kind===p.kind && a.hex && !a.skip &&
+        (p.kind==='tower' || (p.kind==='tile-choice' && p.effect==='neutral')) && terrainAt(s,a.hex)!==s.playerTerrain) {
+      transform(s,{hex:a.hex,build:false})
+    }
+    resolveChoice(s,a)
+  } else if (s.actor === 'automa') {
     check(a.kind === 'automa','오토마 차례입니다.')
     const result = botTurn(s)
     Object.assign(s,result.state)

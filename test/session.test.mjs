@@ -120,3 +120,28 @@ test('passing waits for its science choices, and ending a consecutive player tur
   assert.equal(end.next.state.actor,'player')
   assert.equal(end.ready,true)
 })
+
+test('Inventor pre-round tower and innovation placements require vacant reachable native land', () => {
+  const deal=firstDeal(), config=setupSelection(deal,{playerFaction:'inventors'})
+  const initial=startSession(deal,'starter',{...config,playerBuildings:startingPieces(config)})
+  const tower=sessionAction(initial,{kind:'competency',id:12})
+  assert.equal(tower.state.phase,'setup')
+  assert.deepEqual(boardTargets(tower.state),[])
+  assert.throws(()=>sessionAction(tower,{kind:'tower',hex:'A1'}),/고향 지형/)
+  assert.ok(sessionAction(tower,{kind:'tower',skip:true}))
+  // Existing games with a formerly legal, paid placement can still resume.
+  const old=resumeSession(JSON.stringify({...tower.record,actions:[...tower.record.actions,{kind:'tower',hex:'A1'}]}))
+  assert.ok(old.state.buildings.some(b=>b.hex==='A1' && b.neutral))
+  assert.equal(old.state.terrainChanges.A1,'mountain')
+  for (const pending of [{kind:'tower'},{kind:'tile-choice',effect:'neutral',building:'school'}]) {
+    const s=structuredClone(tower)
+    s.state.pending=[pending]
+    s.state.terrainChanges={A1:'mountain',I1:'mountain'}
+    assert.deepEqual(boardTargets(s.state),['A1'])
+    for (const hex of ['A2','A7','I1']) assert.throws(()=>sessionAction(s,{...pending,hex}))
+    assert.throws(()=>sessionAction(s,{...pending,skip:true}))
+    const placed=sessionAction(s,{...pending,hex:'A1'}).state
+    assert.ok(placed.buildings.some(b=>b.hex==='A1' && b.neutral))
+    assert.deepEqual(placed.terrainChanges,s.state.terrainChanges)
+  }
+})

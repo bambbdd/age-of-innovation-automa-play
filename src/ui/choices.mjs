@@ -4,7 +4,7 @@ import { availableUpgrades, openBuildHexes, canTravel, moleBridgeSites, terrainA
 import { buildingCost, effectiveSailing, resourceConversions, bonusTiles } from '../game/player-economy.mjs'
 import { cityRewards, innovationCost, innovationPoints, competencyLocation } from '../game/first-game-tiles.mjs'
 
-import { tileChoices, tileSpecials, riverCityActions } from '../game/tile-effects.mjs'
+import { neutralSites, tileChoices, tileSpecials, riverCityActions } from '../game/tile-effects.mjs'
 
 export const categories = ['보드','과학·발전','혁신·책','파워·특수','자원 교환','패스']
 const forSubject = kind => subjects.map(discipline=>({kind,discipline}))
@@ -61,7 +61,11 @@ export function suggestions(s,category,hex) {
       case 'competency': return s.deal.competencies.map(id=>({kind:p.kind,id}))
       case 'palace': return s.deal.palaces.map(id=>({kind:p.kind,id}))
       case 'city': return Object.keys(cityRewards).map(id=>({kind:p.kind,id}))
-      case 'tower': return [...(hex ? [{kind:p.kind,hex}] : []),{kind:p.kind,skip:true}]
+      case 'tower': {
+        const sites=neutralSites(s)
+        if (!sites.length) return [{kind:p.kind,skip:true}]
+        return sites.includes(hex) ? [{kind:p.kind,hex}] : []
+      }
     }
   }
   if (s.actor === 'automa') return [{kind:'automa'}]
@@ -158,7 +162,8 @@ export function boardTargets(s,category='보드') {
   if (s.bookChoices || s.phase==='finished') return []
   const p = s.pending[0]
   if (p?.kind==='tile-choice') return [...new Set(tileChoices(s,p).flatMap(actionHexes))]
-  if (p && !['spades','tower'].includes(p.kind)) return []
+  if (p?.kind==='tower') return neutralSites(s)
+  if (p && p.kind!=='spades') return []
   if (!p && s.actor!=='player') return []
   if (!p && s.actionTaken) return riverCityActions(s).map(a=>a.hex)
   if (!p && category==='파워·특수') {

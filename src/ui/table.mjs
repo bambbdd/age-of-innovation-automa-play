@@ -11,6 +11,7 @@ import { roundTiles, finalTiles, roundScoring } from '../game/score-tiles.mjs'
 import { terrainAt } from '../game/board-rules.mjs'
 import { hexCenter } from '../render/draw-small-board.mjs'
 import { art, wood, choiceArt, scoreArt, scienceBoard } from './components.mjs'
+import { sharedBoards, inspectedTile, ownedTiles } from './shared-boards.mjs'
 import { categories, choiceRows, boardTargets } from './choices.mjs'
 
 const app = document.querySelector('#app')
@@ -24,10 +25,11 @@ const terrainOrder = ['forest','mountain','desert','plains','lake','wasteland','
 const descriptions = { 'tile-choice':'타일 효과를 선택하세요. 배치가 필요하면 지도에서 칸을 고르세요.', 'spades':'지도에서 변환할 빈 땅을 선택하세요. 첫 칸에 건설하려면 남은 삽을 먼저 배분하세요.',
   'pay-book':'지불할 책의 분야를 선택하세요.',science:'전진할 과학 분야를 선택하세요.',
   competency:'획득할 적성 타일을 선택하세요.',palace:'궁전 타일을 선택하세요.',city:'도시 설립 보상을 선택하세요.',
-  tower:'새 중립 탑을 놓을 빈 땅을 선택하세요.',key:'과학 8단계에 진입하는 데 도시 열쇠 하나를 사용할 수 있습니다.' }
+  tower:'도달할 수 있는 빈 고향 지형에 중립 탑을 놓으세요. 가능한 칸이 없으면 배치를 생략하세요.',key:'과학 8단계에 진입하는 데 도시 열쇠 하나를 사용할 수 있습니다.' }
 let state = null, view = 'game', selected = null, category = '보드'
 let session = null, savedRaw = null, saveStatus = '', saveError = false, busy = false
 let rows = []
+let inspected = null, boardRows = []
 let preview = null
 
 function openSavedGame() {
@@ -42,6 +44,7 @@ function openSavedGame() {
 }
 
 function showSession(loaded) {
+  inspected=null
   session=loaded
   state=loaded.state
   deal=state.deal
@@ -222,6 +225,7 @@ function ledger(s) {
     <h3>발전과 자원</h3><div class="development">${art('ship-level',s.sailing,'항해 '+s.sailing)}${art('spade-cost',3-s.terraforming,'삽당 도구 '+(3-s.terraforming))}<span class="key-count">${art('resources','key','열쇠')}<b>${s.keys}</b></span></div>
     <p class="summary-line">파워 그릇 I · II · III &nbsp; <b>${s.resources.bowls.join(' / ')}</b></p>
     <h3>내 보너스 타일</h3><div class="held-bonus">${art('round-bonus',s.bonusTiles.player)}<span>${bonusTiles[s.bonusTiles.player].label}</span></div></div></div>
+    ${ownedTiles(s)}
     ${factionStatus?`<p class="summary-line"><b>${botName()}</b> · ${factionStatus}</p>`:''}</details>
     <details class="panel ledger"><summary>라운드별 득점과 과학 보너스</summary><table><tr><th>라운드</th><th>타일</th><th>행동 득점</th><th>종료 보너스</th></tr>${rounds}</table></details>`
 }
@@ -229,6 +233,23 @@ function scores(state) {
   const f=state.final, [p,b]=[state.points.player,state.points.automa]
   const points=[['대국 중 승점',f.before],['영역',f.area.points],...subjects.map(k=>[labels[k],f.science[k]]),['잔여 자원',{player:f.resources,automa:0}],['오토마 종족 보너스',{player:0,automa:f.automaFaction}],['합계',state.points]]
   return `<section class="article panel result"><h2>${p===b?'공동 승리':(p>b?humanName():botName())+' 승리'}</h2><table><tr><th>점수 항목</th><th>${humanName()}</th><th>${botName()}</th></tr>${points.map(([k,v])=>`<tr><td>${k}</td><td>${v.player}</td><td>${v.automa}</td></tr>`).join('')}</table></section>`
+}
+function supply(shown) {
+  const position=shown ?? {...config,innovations:{player:[],automa:[]},competencies:[],buildings:[]}
+  boardRows=[]
+  let detail=''
+  if (inspected) {
+    const [kind,value]=inspected.split('-')
+    const id=Number(value)
+    const [name,info]=inspectedTile(kind,id,deal,position)
+    if (shown && !shown.final && !preview?.ready) {
+      const menu=kind==='power'?'파워·특수':'혁신·책'
+      boardRows=choiceRows(shown,menu,null).filter(row=>row.action.kind===kind && row.action.id===id)
+    }
+    const buttons=boardRows.map((r,i)=>`<button class="choice" data-shared-action="${i}" ${r.enabled?'':'disabled'}><span>${r.action.from?esc(r.action.from+' ↔ '+r.action.to):'선택'}${!r.enabled && r.info?`<small>${esc(r.info)}</small>`:''}</span></button>`).join('')
+    detail=`<div class="slot-details"><strong>${esc(name)}</strong>${info?`<p>${esc(info)}</p>`:''}${buttons?`<div class="actions">${buttons}</div>`:''}</div>`
+  }
+  return sharedBoards(deal,position,inspected,detail)
 }
 function render() {
   for (const button of document.querySelectorAll('[data-view]')) button.setAttribute('aria-pressed',String(button.dataset.view===view))
@@ -240,7 +261,7 @@ function render() {
   else if (view==='guide') content+=`<article class="panel article"><h2>대국 설정</h2><p>난이도와 오토마 종족을 정하고, 배분된 세 계획판에서 플레이어 종족을 고르세요. 새 카드 배분은 선택 가능한 종족과 타일을 바꿉니다.</p><h2>내 차례</h2><p>지도에서 칸을 눌러 지형 변환·건설·개량 비용을 확인하세요. 과학·발전, 혁신·책, 파워 행동도 한 차례에 하나씩 선택할 수 있습니다. 자원 교환, 본행동, 후속 선택은 지도와 자원에 바로 표시됩니다. 모두 마친 뒤 차례 마치기와 확정을 누르면 이번 차례 전체가 저장됩니다. 되돌리기를 누르면 차례 시작 상태로 돌아갑니다.</p><h2>오토마와 패스</h2><p>오토마 차례에는 행동 카드와 지원 카드를 공개합니다. 인접 건물이 주는 파워는 수락하거나 거절할 수 있습니다. 먼저 패스한 쪽이 다음 라운드를 시작합니다.</p><h2>최종 점수</h2><p>6라운드에 양측이 패스하면 가장 큰 연결 영역, 네 과학 분야의 순위, 남은 자원을 정산합니다. 승점이 같으면 공동 승리입니다.</p></article>`
   else {
     const scoring=shown?.scoring && !shown.final ? panel('라운드 득점',scoreArt(shown.deal,shown.round)+shown.scoring.triggers.map(t=>`<p class="summary-line">${labels[t.action]??t.action} · ${t.points}점</p>`).join('')+`<p class="muted">${botName()} 패스 · ${shown.scoring.automaPoints}점</p>`) : ''
-    content+=`${shown?.final?scores(shown):''}<div class="layout"><div>${map(shown)}${ledger(shown)}</div><aside class="side">${roster(shown)}${shown ? (preview?.ready?'':controls(shown))+(preview?previewControls():saveControls()) : setup()}${scoring}</aside></div>`
+    content+=`${shown?.final?scores(shown):''}<div class="layout"><div>${map(shown)}${supply(shown)}${ledger(shown)}</div><aside class="side">${roster(shown)}${shown ? (preview?.ready?'':controls(shown))+(preview?previewControls():saveControls()) : setup()}${scoring}</aside></div>`
   }
   app.innerHTML=content
 }
@@ -253,6 +274,10 @@ document.addEventListener('click',async event=>{
   notice.textContent=''
   try {
     if (el.dataset.view) view=el.dataset.view
+    else if (el.dataset.inspect) {
+      inspected=inspected===el.dataset.inspect?null:el.dataset.inspect
+      focusAfterRender=`[data-inspect="${el.dataset.inspect}"]`
+    }
     else if ('undo' in el.dataset && preview) {
       preview=null
       category='보드'
@@ -268,13 +293,14 @@ document.addEventListener('click',async event=>{
     else if ('load' in el.dataset) { if (!openSavedGame()) throw new Error('저장한 대국을 찾을 수 없습니다.') }
     else if ('resume' in el.dataset) showSession(session)
     else if ('redeal' in el.dataset || 'starter' in el.dataset) {
+      inspected=null
       market='starter' in el.dataset ? 'starter' : 'standard'
       deal=market==='starter' ? firstDeal() : createSetupDeal({seed:crypto.getRandomValues(new Uint32Array(1))[0],difficulty:deal.difficulty})
       config=setupSelection(deal,market==='starter'?{}:config)
       nextSetupSlot=0
       selected=null
     }
-    else if ('new' in el.dataset) { state=null; selected=null; category='보드' }
+    else if ('new' in el.dataset) { inspected=null; state=null; selected=null; category='보드' }
     else if (el.dataset.cell) {
       const id=el.dataset.cell
       if (!state) {
@@ -286,9 +312,9 @@ document.addEventListener('click',async event=>{
       selected=id
       if (category!=='파워·특수') category='보드'
     } else if (el.dataset.category) { category=el.dataset.category; selected=null }
-    else if (el.dataset.action!=null) {
-      const index=Number(el.dataset.action)
-      const {action,enabled}=rows[index]
+    else if (el.dataset.action!=null || el.dataset.sharedAction!=null) {
+      const row=el.dataset.sharedAction!=null ? boardRows[Number(el.dataset.sharedAction)] : rows[Number(el.dataset.action)]
+      const {action,enabled}=row
       if (!enabled || preview?.ready) return
       if (action.kind==='automa') {
         if (preview) return
@@ -296,16 +322,18 @@ document.addEventListener('click',async event=>{
       } else {
         preview=stagePlayerAction(session,preview,action)
         if (preview.ready) focusAfterRender='.preview-panel h2'
+        else if (el.dataset.sharedAction!=null) focusAfterRender='.side [data-action]:not(:disabled), .side [data-category]'
       }
       if (action.kind!=='convert') { category='보드'; selected=null }
     } else return
     render()
-    if (focusAfterRender) app.querySelector(focusAfterRender)?.focus({preventScroll:true})
+    if (focusAfterRender) app.querySelector(focusAfterRender)?.focus({preventScroll:el.dataset.sharedAction==null})
   } catch(error) { notice.textContent=error.message } finally { busy=false }
 })
 app.addEventListener('change',event=>{
   if (busy) return
   const el=event.target
+  inspected=null
   if (el.id==='difficulty') {
     deal=sessionDeal(deal.seed,el.value,market)
     config=setupSelection(deal,config)

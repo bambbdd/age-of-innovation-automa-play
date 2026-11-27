@@ -1,7 +1,7 @@
 import { smallBoard, bridgeSites } from './small-board.mjs'
 import { adjacentLand, builtBridges, newCityGroups, openBuildHexes, pieceAvailable,
-  terrainAt, terraformAndBuild, upgradePlayerBuilding } from './board-rules.mjs'
-import { advanceTrack, buildingCost, effectiveSailing } from './player-economy.mjs'
+  terrainAt, upgradePlayerBuilding } from './board-rules.mjs'
+import { advanceTrack, effectiveSailing } from './player-economy.mjs'
 
 const disciplines = ['banking','law','engineering','medicine']
 const neutral = {11:'workshop',12:'school',13:'university',14:'palace',15:'monument',18:'guild'}
@@ -68,13 +68,8 @@ function emptyNative(s) {
   return smallBoard.filter(c=>terrainAt(s,c.id)===s.playerTerrain && clear(s,c.id)).map(c=>c.id)
 }
 
-function legalNeutral(s) {
-  return openBuildHexes(s,playerPieces(s),effectiveSailing(s)).filter(hex=>{
-    if (!clear(s,hex)) return false
-    if (terrainAt(s,hex)===s.playerTerrain) return true
-    const {spades} = terraformAndBuild(s,hex,effectiveSailing(s),{build:false})
-    return buildingCost(s,hex,null,spades).tools<=s.resources.tools
-  })
+export function neutralSites(s) {
+  return openBuildHexes(s,playerPieces(s),effectiveSailing(s)).filter(hex=>terrainAt(s,hex)===s.playerTerrain)
 }
 
 function freeBridges(s) {
@@ -112,7 +107,7 @@ export function tileChoices(s,p) {
     case 'neutral':
     case 'native-guild':
     case 'upgrade-guild': {
-      const hexes=p.effect==='neutral'?legalNeutral(s):p.effect==='native-guild'?emptyNative(s):eligibleGuilds(s,'workshop')
+      const hexes=p.effect==='neutral'?neutralSites(s):p.effect==='native-guild'?emptyNative(s):eligibleGuilds(s,'workshop')
       return hexes.length ? hexes.map(hex=>make({hex,building:p.building??'guild'})) : [make({skip:true})]
     }
     case 'discipline': return disciplines.map(discipline=>make({discipline}))
@@ -139,7 +134,6 @@ export function resolveTileChoice(s,p,a,ctx) {
       if (a.skip) break
       if (p.effect==='upgrade-guild') {useGuild(s,a.hex,'workshop',ctx); break}
       const isNeutral=p.effect==='neutral'
-      if (terrainAt(s,a.hex)!==s.playerTerrain) ctx.transform(s,{hex:a.hex,build:false,neutralPlacement:true})
       const building=isNeutral?p.building:'guild'
       s.buildings.push({hex:a.hex,building,owner:'player',...(isNeutral?{neutral:true}:{})})
       ctx.buildingScore(s,a.hex,building,{neutral:isNeutral})

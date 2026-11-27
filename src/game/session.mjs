@@ -46,7 +46,7 @@ export function resumeSession(raw) {
   if (record?.version !== 1 || !Array.isArray(record.actions)) throw new Error('읽을 수 없는 저장 형식입니다.')
   const deal = sessionDeal(record.seed,record.difficulty,record.market)
   let state = createGame(deal,record.setup)
-  for (const action of record.actions) state = play(state,action)
+  for (const action of record.actions) state = play(state,action,{replayPlacedNeutral:true})
   return {state,record}
 }
 
