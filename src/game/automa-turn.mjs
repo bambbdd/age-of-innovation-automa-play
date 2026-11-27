@@ -1,6 +1,6 @@
 import cards from './data/decision-cards.json' with { type: 'json' }
 import { difficultyLevels, shuffleWithSeed } from './setup.mjs'
-import { resolveAutomaBoardAction } from './automa-board.mjs'
+import { resolveAutomaBoardAction, explainBoardChoice } from './automa-board.mjs'
 
 import { factionSetup, placeTool, spreadBlight, checkAchievements } from './automa-factions.mjs'
 
@@ -133,7 +133,8 @@ function execute(state, action, card, support) {
       let summary = '건설·개량 생략'
       if (result.action === 'transform-and-build') summary = `${result.hex} 작업장 건설 (${result.marked ? '표시' : '미표시'})`
       if (result.action === 'upgrade') summary = `${result.hex} ${buildingNames[result.building]} 개량`
-      return { state: result.position, powerOffered: result.powerOffered, summary }
+      return { state: result.position, powerOffered: result.powerOffered, summary,
+        decision:explainBoardChoice(result,support,action==='faction-build'?state.automaFaction:null) }
     }
     case 'block-power-book-action': return blockActions(state, support)
     case 'take-innovation': return takeInnovation(state, support)
@@ -187,12 +188,14 @@ export function botTurn(state) {
     action === 'faction-action' ? factionActions(state.automaFaction) : [action])
   let powerOffered = 0
   const summaries = []
+  const decisions = []
   for (const action of actions) {
     const result = execute(next, action, card, support)
     next = checkAchievements(result.state,{power:result.powerOffered})
     powerOffered += result.powerOffered ?? 0
     summaries.push(result.summary)
+    if (result.decision) decisions.push(result.decision)
   }
-  return { state: next, passed: false, powerOffered,
+  return { state: next, passed: false, powerOffered, decisions,
     summary: `${botFactionNames[state.automaFaction]} · 행동 ${deck.action} / 지원 ${deck.support} · ${summaries.join(' · ')}` }
 }

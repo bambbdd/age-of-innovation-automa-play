@@ -91,7 +91,7 @@ export function resolveAutomaBoardAction(position, action, supportCardId, round,
   const closest = hex => distance(toPlayer,hex)
   const priority = hex => order.indexOf(terrainAt(position,hex))
   let options = trace.bringTogether
-  if (faction === 'powermongers') options = bestHexes(options,hex=>-powerOffered(position,hex))
+  if (faction === 'powermongers') options = trace.mostPower = bestHexes(options,hex=>-powerOffered(position,hex))
   if (faction === 'kuddlers') {
     trace.closestPlayer = bestHexes(options,closest)
     options = trace.terrain = bestHexes(trace.closestPlayer,priority)
@@ -110,4 +110,36 @@ export function resolveAutomaBoardAction(position, action, supportCardId, round,
   }
   return { action, hex, building: 'workshop', marked: mark, powerOffered: powerOffered(position, hex),
     trace, position: next }
+}
+
+// Explain the actual candidate sets left by the solver, in the order used on this card.
+export function explainBoardChoice(result,support,faction) {
+  const {hex,trace,action} = result
+  const reasons = []
+  if (trace.fallback) reasons.push(trace.fallback==='no-workshop' ? '작업장 재고가 없어 개량으로 전환' : '건설할 빈 칸에 닿지 않아 개량으로 전환')
+  if (action==='skip') return {hexes:[],reasons:[...reasons,'개량 가능한 건물이 없어 생략']}
+  const direction = support.direction==='left-up' ? '오른쪽 아래부터 역방향' : '왼쪽 위부터 정방향'
+  let finalists
+  if (action==='upgrade') {
+    reasons.push('개량 가능 '+trace.upgradeable.length+'칸', '인접 작업장 우선 적용 후 '+trace.preferred.length+'칸',
+      '최소 제안 파워 '+result.powerOffered+' · '+trace.leastPower.length+'칸')
+    finalists=trace.leastPower
+  } else {
+    const group=support.structure.startsWith('marked')?'표시 건물':'미표시 건물'
+    reasons.push((faction==='wanderers'?'거리 제한 없는 빈 육지':group+'에서 도달 가능한 빈 육지')+' '+trace.reachable.length+'칸')
+    if (trace.bringTogether.length<trace.reachable.length) reasons.push('두 건물군 사이 거리 단축 · '+trace.bringTogether.length+'칸')
+    if (trace.mostPower) reasons.push('제안 파워 최대 · '+trace.mostPower.length+'칸')
+    const terrain=(['kuddlers','mimics'].includes(faction)?'내':'오토마')+' 지형 순위 '+support.terrainPriority+' · '+trace.terrain.length+'칸'
+    const near='내 건물에 가장 가까운 후보 '+trace.closestPlayer.length+'칸'
+    if (faction==='kuddlers') reasons.push(near,terrain)
+    else reasons.push(terrain,near)
+    finalists=faction==='kuddlers'?trace.terrain:trace.closestPlayer
+  }
+  reasons.push(finalists.length===1 ? '남은 한 칸 '+hex+' 선택' : direction+' '+support.count+'번째로 '+hex+' 선택')
+  if (action==='transform-and-build') {
+    const distance=n=>Number.isFinite(n)?n:'도달 불가'
+    reasons.push('표시 건물까지 '+distance(trace.nearestMarked)+' · 미표시 건물까지 '+distance(trace.nearestUnmarked)
+      +' → '+(result.marked?'표식 배치':trace.nearestMarked===trace.nearestUnmarked?'동거리이므로 미표시':'미표시'))
+  }
+  return {hexes:[hex],reasons}
 }

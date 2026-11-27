@@ -16,7 +16,14 @@ const border = new Set(smallBoard.filter(c => smallBoard.filter(t =>
 
 function check(condition, message) { if (!condition) throw new Error(message) }
 const owned = (s, type) => s.buildings.filter(b => b.owner === 'player' && b.building === type).length
-const addLog = (s, text) => s.log.push({ round: s.round, text })
+const addLog = (s,text,delta,detail) => s.log.push({round:s.round,text,...(delta && {delta}),...detail})
+const change = (s,before) => ({player:s.points.player-before.player,automa:s.points.automa-before.automa})
+
+export function pointsFromLog(log) {
+  return log.reduce((sum,{delta})=>({
+    player:sum.player+(delta?.player??0),automa:sum.automa+(delta?.automa??0),
+  }),{player:0,automa:0})
+}
 
 export function firstDeal() {
   const deal = createSetupDeal({ seed: 42 })
@@ -38,6 +45,7 @@ export function createGame(deal, selection) {
     competencies: [], cityTiles: [], palace: null, annexes: 0,
     scholarSlots: Object.fromEntries(subjects.map(k => [k, Array(4).fill(null)])),
     innovations: { pool: [...position.deal.innovations], player: [], automa: [] } })
+  addLog(s,'시작 승점',{...s.points})
   economy.initializeEconomy(s)
   s.phase = 'setup'
   settle(s)
@@ -81,8 +89,9 @@ function newRound(s) {
   s.blocked = { power: [], book: [], special: [] }
   const { rounds, final } = s.deal.scoreTiles
   s.scoring = roundScoring(s.round, roundTiles.find(t => t.id === rounds[s.round-1]), finalTiles.find(t => t.id === final))
+  const before={...s.points}
   reward(s, tiles.tileIncome(s))
-  addLog(s, `제${s.round}라운드 시작`)
+  addLog(s, `제${s.round}라운드 시작`,change(s,before))
 }
 
 function finish(s) {
@@ -101,7 +110,10 @@ function finish(s) {
   s.points.player += totals.player + area.points.player + resources
   s.points.automa += totals.automa + area.points.automa + factionPoints
   s.phase = 'finished'
-  addLog(s,'최종 영역·과학·잔여 자원 정산')
+  addLog(s,'최종 영역',area.points)
+  for (const key of subjects) addLog(s,'최종 '+labels[key],science[key])
+  addLog(s,'잔여 자원 정산',{player:resources,automa:0})
+  if (factionPoints) addLog(s,'오토마 종족 최종 보너스',{player:0,automa:factionPoints})
 }
 
 function scienceBonus(s) {
@@ -111,6 +123,12 @@ function scienceBonus(s) {
   const keys = { coin:'coins', tool:'tools', scholar:'scholars', 'book-of-choice':'books', power:'power', spade:'spades' }
   reward(s,{ [keys[b.reward]]:n })
   addLog(s,`라운드 종료 · 과학 보너스 ×${n}`)
+}
+
+function finishRoundAchievements(s) {
+  const before={...s.points}
+  Object.assign(s,checkBotRoundEnd(s))
+  if (s.points.automa!==before.automa) s.log.at(-1).delta=change(s,before)
 }
 
 // Completion of a turn/round waits until every reward and power decision has been resolved.
@@ -123,18 +141,19 @@ function settle(s) {
     else if (s.phase === 'setup') {
       newRound(s)
     } else if (s.phase === 'income') {
+      const before={...s.points}
       economy.collectIncome(s)
       s.phase = 'actions'
-      addLog(s,'수입 수령')
+      addLog(s,'수입 수령',change(s,before))
     } else if (s.phase === 'intermission') {
-      Object.assign(s,checkBotRoundEnd(s))
+      finishRoundAchievements(s)
       for (const tile of s.bonusTiles.pool) tile.coins++
       Object.assign(s,prepareNextBotRound(s))
       s.turnOrder = [...s.passed]
       s.round++
       newRound(s)
     } else if (s.passed.length === 2) {
-      if (s.round === 6) { Object.assign(s,checkBotRoundEnd(s)); finish(s) }
+      if (s.round === 6) { finishRoundAchievements(s); finish(s) }
       else { s.phase = 'intermission'; scienceBonus(s) }
     } else break
   }
@@ -430,7 +449,7 @@ export function play(previous,a) {
     check(a.kind === 'automa','오토마 차례입니다.')
     const result = botTurn(s)
     Object.assign(s,result.state)
-    addLog(s,result.summary)
+    addLog(s,result.summary,change(s,previous.points),{bot:true,decisions:result.decisions??[]})
     if (result.passed) s.passed.push('automa')
     if (result.powerOffered) s.pending.push({kind:'power-offer',amount:result.powerOffered})
     endTurn(s,'automa')
@@ -444,7 +463,7 @@ export function play(previous,a) {
     if (a.kind === 'pass') pass(s,a.id)
     else s.actionTaken = regularAction(s,a) !== 'extra-action'
   }
-  if (!['automa','end-turn'].includes(a.kind)) addLog(s, actionDescription(a,s))
+  if (!['automa','end-turn'].includes(a.kind)) addLog(s, actionDescription(a,s),change(s,previous.points))
   settle(s)
   return s
 }

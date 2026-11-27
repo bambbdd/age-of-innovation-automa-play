@@ -721,3 +721,20 @@ select {
     font-size:29px;
   }
 }
+
+.map-cell.target::before { z-index: 2; }
+.bot-location {
+  position: absolute;
+  inset: 8%;
+  border: 3px double #fff1a5;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px #684623;
+  z-index: 1;
+}
+.bot-decision { padding: .6rem 1rem; border-top: 1px solid var(--line); }
+.bot-decision p, .bot-decision ol { margin: .45rem 0; }
+.bot-decision ol, .log details ol { padding-left: 1.5rem; }
+.bot-decision summary, .log summary { cursor: pointer; }
+.log .score-change { display: block; color: #355843; }
+.log details li { display: list-item; padding: 0; border: 0; }
+.save-status { margin: .25rem 0; color: var(--muted); font-size: .9rem; }

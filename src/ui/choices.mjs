@@ -1,6 +1,6 @@
 import { play, subjects, labels, actionDescription } from '../game/first-game.mjs'
 import { smallBoard, bridgeSites, nativeTerrains } from '../game/small-board.mjs'
-import { availableUpgrades, canTravel, moleBridgeSites, terrainAt, terraformAndBuild } from '../game/board-rules.mjs'
+import { availableUpgrades, openBuildHexes, canTravel, moleBridgeSites, terrainAt, terraformAndBuild } from '../game/board-rules.mjs'
 import { buildingCost, effectiveSailing, resourceConversions, bonusTiles } from '../game/player-economy.mjs'
 import { cityRewards, innovationCost, innovationPoints, competencyLocation } from '../game/first-game-tiles.mjs'
 
@@ -44,7 +44,7 @@ export function suggestions(s,category,hex) {
   if (s.bookChoices) return forSubject('choose-book')
   if (p) {
     switch (p.kind) {
-      case 'tile-choice': return tileChoices(s,p).filter(a=>!a.hex || !hex || a.hex===hex)
+      case 'tile-choice': return tileChoices(s,p).filter(a=>!hex || !actionHexes(a).length || actionHexes(a).includes(hex))
       case 'power-offer': case 'key': return [{kind:p.kind,accept:true},{kind:p.kind,accept:false}]
       case 'science': case 'pay-book': return forSubject(p.kind)
       case 'spades': {
@@ -96,7 +96,7 @@ export function suggestions(s,category,hex) {
         options.push({kind:'power',id:1,from,to})
         if (special === 'bridge') options.push({kind:'special',source:'bonus',from,to})
       }
-      return options
+      return options.filter(a=>!hex || !actionHexes(a).length || actionHexes(a).includes(hex))
     }
     case '자원 교환': return Object.keys(resourceConversions).flatMap(id=>['bookCoin','powerBook'].includes(id)
       ? subjects.map(discipline=>({kind:'convert',id,discipline})) : [{kind:'convert',id}])
@@ -150,13 +150,29 @@ export function choiceRows(s,category,hex) {
   })
 }
 
-export function boardTargets(s) {
+function actionHexes(action) {
+  return [action.hex,action.from,action.to].filter(Boolean)
+}
+
+export function boardTargets(s,category='보드') {
   if (s.bookChoices || s.phase==='finished') return []
   const p = s.pending[0]
-  if (p?.kind === 'tile-choice') return tileChoices(s,p).map(a=>a.hex).filter(Boolean)
+  if (p?.kind==='tile-choice') return [...new Set(tileChoices(s,p).flatMap(actionHexes))]
   if (p && !['spades','tower'].includes(p.kind)) return []
   if (!p && s.actor!=='player') return []
-  const rivers = !p ? riverCityActions(s).map(a=>a.hex) : []
-  if (!p && s.actionTaken) return rivers
-  return dry.filter(hex => choiceRows(s,'보드',hex).some(r=>r.enabled && r.action.hex===hex && r.action.kind!=='finish-build')).concat(rivers)
+  if (!p && s.actionTaken) return riverCityActions(s).map(a=>a.hex)
+  if (!p && category==='파워·특수') {
+    return [...new Set(choiceRows(s,category,null).filter(r=>r.enabled).flatMap(r=>actionHexes(r.action)))]
+  }
+  if (!p && category!=='보드') return []
+  const own=s.buildings.filter(b=>b.owner==='player')
+  const candidates=new Set([...openBuildHexes(s,own,effectiveSailing(s)),...own.map(b=>b.hex)])
+  if (s.phase==='actions' && (s.palace===9 || s.playerFaction==='moles')) {
+    for (const hex of dry) if (canTravel(s,hex,'flight') || canTravel(s,hex,'tunnel')) candidates.add(hex)
+  }
+  const legal=[...candidates].filter(hex=>suggestions(s,'보드',hex).some(action=>{
+    if (action.hex!==hex) return false
+    try { play(s,action); return true } catch { return false }
+  }))
+  return p ? legal : [...legal,...riverCityActions(s).map(a=>a.hex)]
 }

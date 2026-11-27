@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createSetupDeal, difficultyLevels } from '../src/game/setup.mjs'
-import { createFirstGame, createGame, play } from '../src/game/first-game.mjs'
+import { createFirstGame, createGame, play, pointsFromLog } from '../src/game/first-game.mjs'
 import { resolveAutomaBoardAction } from '../src/game/automa-board.mjs'
 import { spadesBetween, terrainAt, openBuildHexes, terraformAndBuild } from '../src/game/board-rules.mjs'
 import { checkAchievements, factionSetup, placeTool, spreadBlight } from '../src/game/automa-factions.mjs'
@@ -45,6 +45,7 @@ test('each difficulty and Automa completes all six rounds through the selectable
       }
       assert.equal(state.phase,'finished',difficulty+' / '+automaFaction)
       assert.equal(state.round,6)
+      assert.deepEqual(pointsFromLog(state.log),state.points)
       assert.ok(Number.isFinite(state.points.player) && Number.isFinite(state.points.automa))
       const totalBot = state.final.before.automa + state.final.area.points.automa
         + Object.values(state.final.science).reduce((sum,pts)=>sum+pts.automa,0) + state.final.automaFaction

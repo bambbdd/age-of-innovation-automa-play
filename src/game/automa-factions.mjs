@@ -50,7 +50,8 @@ export function placeTool(state,support) {
   const order=priorities[support.terrainPriority][state.botSpecial.youth]
   const hex=selectBest(options,hex=>order.indexOf(terrainAt(state,hex)),support)
   const tools=[...state.botSpecial.tools,hex]
-  return {state:{...state,botSpecial:{...state.botSpecial,tools}},summary:hex+'에 공생체족 도구 배치'}
+  return {state:{...state,botSpecial:{...state.botSpecial,tools}},summary:hex+'에 공생체족 도구 배치',
+    decision:{hexes:[hex],reasons:['내 건물에 인접한 빈 육지 '+options.length+'칸에서 청년 지형 순위 '+support.terrainPriority+' 적용 후 카드 방향·순번으로 '+hex+' 선택']}}
 }
 
 export function spreadBlight(state,support) {
@@ -66,7 +67,8 @@ export function spreadBlight(state,support) {
     changed.push(hex)
     options=options.filter(id=>id!==hex)
   }
-  return {state:{...state,terrainChanges},summary:changed.length?'황폐지 전환 · '+changed.join('·'):'휴경지 없음'}
+  return {state:{...state,terrainChanges},summary:changed.length?'황폐지 전환 · '+changed.join('·'):'휴경지 없음',
+    decision:{hexes:changed,reasons:[changed.length?'내 건물에 가까운 빈 휴경지부터 동률은 카드 방향·순번을 적용해 '+changed.join('·')+' 전환':'빈 휴경지가 없어 전환 생략']}}
 }
 
 export function checkAchievements(state,{power=0,end=false,pass=null}={}) {
