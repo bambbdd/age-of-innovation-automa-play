@@ -47,3 +47,5 @@ const position = placeStartingBuildings(deal, {
 `public/components/`의 항해, 과학 분야, 종족, 지형, 혁신, 궁전, 적성, 라운드 보너스·득점, 책 행동 이미지는 [오토마 헬퍼의 원본 자산](https://github.com/brdgm/age-of-innovation-solo-helper/tree/bde1baec322d97b1fc022df1e34e03f7818c4521/src/assets)에서 가져왔다. 과학 판면과 책은 영문 기본 규칙서 2쪽, 나무 기물과 자원은 3쪽, 도시 타일과 파워 행동은 23쪽의 구성물 그림을 사용한다.
 
 삽당 도구 1·2·3개 도안은 [공식 영문 규칙서 11쪽](https://www.feuerland-spiele.de/fileadmin/game/Age_of_Innovation/Age_of_Innovation_rules_EN_V1-1_low.pdf#page=11)의 지형 변환 트랙에서 각 비용 칸을 잘라 사용한다.
+
+열쇠 아이콘은 기본 규칙서 2쪽의 도시 타일 뒷면에서 가져왔다.

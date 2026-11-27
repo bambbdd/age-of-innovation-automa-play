@@ -779,3 +779,8 @@ select {
 .track-change img { height:28px; width:auto; }
 .preview-buttons { display:flex; gap:.5rem; margin-top:.85rem; }
 .preview-buttons button { flex:1; width:auto; margin:0; }
+
+.key-count { display:inline-flex; align-items:center; gap:5px; }
+.key-count img { width:30px; height:34px; }
+.preview-changes img[alt="열쇠"] { width:22px; height:25px; }
+.turn-actions { margin:.35em 0; padding-left:1.5em; }

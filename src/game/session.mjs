@@ -1,4 +1,4 @@
-import { createGame, firstDeal, play } from './first-game.mjs'
+import { actionDescription, createGame, firstDeal, play } from './first-game.mjs'
 import { createSetupDeal } from './setup.mjs'
 
 export const saveKey = 'age-of-innovation.solo.v1'
@@ -22,6 +22,23 @@ export function startSession(deal,market,selection) {
 export function sessionAction(session,action) {
   const state = play(session.state,action)
   return {state,record:{...session.record,actions:[...session.record.actions,action]}}
+}
+
+function needsChoice(state) {
+  return state.bookChoices > 0 || state.pending.length > 0
+}
+
+// The committed session stays at the checkpoint until the whole turn is accepted.
+export function stagePlayerAction(committed, draft, action) {
+  if (draft?.ready || action.kind==='automa') throw new Error('플레이어 차례를 먼저 확정하세요.')
+  const current = draft?.next ?? committed
+  const next = sessionAction(current,action)
+  // Setup, income and responses to an Automa action may start at their own checkpoint.
+  const effectsOnly = draft?.effectsOnly ?? (needsChoice(current.state) && !current.state.actionTaken)
+  const closing = effectsOnly || draft?.closing===true || ['end-turn','pass'].includes(action.kind)
+  const ready = closing && (!needsChoice(next.state) || next.state.round !== committed.state.round)
+  return {next,effectsOnly,closing,ready,
+    labels:[...(draft?.labels ?? []),actionDescription(action,current.state)]}
 }
 
 export function resumeSession(raw) {

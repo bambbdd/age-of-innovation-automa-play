@@ -3,7 +3,7 @@ import { playerFactionNames, playerFactionDescriptions } from '../game/player-fa
 import { botDescriptions, achievementNames } from '../game/automa-factions.mjs'
 import { botFactionNames } from '../game/automa-turn.mjs'
 import { firstDeal, pointsFromLog, subjects, labels } from '../game/first-game.mjs'
-import { startSession, sessionAction, resumeSession, sessionDeal, saveKey, writeSession, SaveConflict } from '../game/session.mjs'
+import { startSession, sessionAction, stagePlayerAction, resumeSession, sessionDeal, saveKey, writeSession, SaveConflict } from '../game/session.mjs'
 import { bonusTiles } from '../game/player-economy.mjs'
 import { smallBoard, nativeTerrains } from '../game/small-board.mjs'
 import { createSetupDeal, difficultyLevels, initialAutomaWorkshops } from '../game/setup.mjs'
@@ -35,6 +35,7 @@ function openSavedGame() {
   savedRaw = raw
   if (raw===null) return false
   showSession(resumeSession(raw))
+  preview=null
   saveError=false
   saveStatus='저장한 대국을 열었습니다.'
   return true
@@ -66,6 +67,7 @@ async function acceptSession(next) {
       return false
     }
     saveStatus='자동 저장 실패 · 이 탭을 열어 두고 브라우저 저장 공간을 확인하세요.'
+    if (preview) return false
   }
   session=next
   state=next.state
@@ -86,7 +88,7 @@ const coord = id => hexCenter(smallBoard.find(c=>c.id===id))
 function map(state) {
   const pieces = state?.buildings ?? [...initialAutomaWorkshops(config.automaTerrain,deal.setupCardId),
     ...startingPieces(config).map(piece=>({...piece,owner:'player'}))]
-  if (!preview && (targetState !== state || targetCategory!==category)) {
+  if (!preview?.ready && (targetState !== state || targetCategory!==category)) {
     targets=state ? boardTargets(state,category) : []
     targetState=state
     targetCategory=category
@@ -103,11 +105,11 @@ function map(state) {
     const type = state ? terrainAt(state,c.id) : c.terrain
     const tool=state?.botSpecial.tools?.includes(c.id), riverCity=state?.riverCities?.includes(c.id)
     const token = tool ? '공생체족 도구' : riverCity ? '강 도시' : ''
-    const target = !preview && (state ? targets.includes(c.id) : c.terrain===config.playerTerrain)
+    const target = !preview?.ready && (state ? targets.includes(c.id) : c.terrain===config.playerTerrain)
     const description = [c.id,labels[type],token,b?.neutral && '중립',b && (b.owner==='automa'?botName():humanName()),b && labels[b.building],b?.marked && '표시',target && '선택 가능',botHexes.has(c.id) && '오토마 선택'].filter(Boolean).join(' ')
     const index=terrainOrder.indexOf(type)
     const change = c.terrain===type ? '' : `<span class="terrain-change" style="background-position:${index%4*100/3}% ${Math.floor(index/4)*100}%"></span>`
-    return `<button class="map-cell ${target?'target':''} ${c.id===selected?'selected':''}" style="left:${p.x/16.8}%;top:${(p.y-66.5)/10.9}%" data-cell="${c.id}" ${preview?'disabled':''} aria-label="${description}" title="${description}">${change}${botHexes.has(c.id)?'<span class="bot-location" aria-hidden="true"></span>':''}${token ? `<span class="board-token">${tool?art('resources','tool'):'⚑'}</span>`:''}${b ? `<span class="piece ${b.marked?'mark':''}">${wood(b.building,b.neutral?'neutral':(state??config)[b.owner+'Terrain'])}${b.annex?'<sup>⁺</sup>':''}</span>`:''}</button>`
+    return `<button class="map-cell ${target?'target':''} ${c.id===selected?'selected':''}" style="left:${p.x/16.8}%;top:${(p.y-66.5)/10.9}%" data-cell="${c.id}" ${preview?.ready?'disabled':''} aria-label="${description}" title="${description}">${change}${botHexes.has(c.id)?'<span class="bot-location" aria-hidden="true"></span>':''}${token ? `<span class="board-token">${tool?art('resources','tool'):'⚑'}</span>`:''}${b ? `<span class="piece ${b.marked?'mark':''}">${wood(b.building,b.neutral?'neutral':(state??config)[b.owner+'Terrain'])}${b.annex?'<sup>⁺</sup>':''}</span>`:''}</button>`
   }).join('')
   return `<section class="panel"><div class="bar"><h2>게임 지도</h2><small>작은 보드 · 1–3인용</small></div><div class="map-frame"><img src="./public/boards/small-board.png" alt="작은 보드의 지형과 다리터"><svg class="map-svg" viewBox="0 0 1680 1090" aria-hidden="true">${bridges}</svg>${cells}</div>
     <div class="map-key"><span>${wood('workshop',(state??config).playerTerrain)}${humanName()}</span><span>${wood('workshop',(state??config).automaTerrain)}${botName()}</span><span><i class="dot purple"></i>표시 건물</span><span>• 선택 가능</span>${botHexes.size?'<span>◎ 오토마 선택</span>':''}</div>
@@ -170,19 +172,23 @@ function previewControls() {
     compare(labels[subject]+' 책',state.resources.books[subject],after.resources.books[subject])
     compare(labels[subject],state.playerScience[subject],after.playerScience[subject])
   }
-  compare('열쇠',state.keys,after.keys)
+  compare(art('resources','key','열쇠'),state.keys,after.keys)
   function compareTrack(label,group,before,value) {
     if (before!==value) changes.push(`<li>${label}<span class="track-change">${art(group,before,label+' '+before)} → ${art(group,value,label+' '+value)}</span></li>`)
   }
   compareTrack('항해','ship-level',state.sailing,after.sailing)
   compareTrack('삽당 도구','spade-cost',3-state.terraforming,3-after.terraforming)
   compare('승점',state.points.player,after.points.player)
-  return `<section class="panel preview-panel"><h2 tabindex="-1">행동 미리보기</h2><p>${esc(preview.label)}</p>
+  const heading = preview.effectsOnly ? '효과 처리 결과' : '이번 차례 결과'
+  const confirm = preview.ready ? '<button class="primary" data-confirm>확정</button>' : ''
+  const error = saveError ? `<p role="alert">${esc(saveStatus)}</p><button class="soft" data-load>저장한 대국 다시 열기</button>` : ''
+  return `<section class="panel preview-panel"><h2 tabindex="-1">${heading}</h2>
+    <ol class="turn-actions">${preview.labels.map(label=>'<li>'+esc(label)+'</li>').join('')}</ol>
     ${changes.length ? '<ul class="preview-changes">'+changes.join('')+'</ul>' : ''}
-    <div class="preview-buttons"><button class="soft" data-undo>되돌리기</button><button class="primary" data-confirm>확정</button></div></section>`
+    <div class="preview-buttons"><button class="soft" data-undo>되돌리기</button>${confirm}</div>${error}</section>`
 }
 
-function controls() {
+function controls(state) {
   if (state.phase==='finished') return panel('대국 종료','<p>최종 점수와 분야별 계산 결과를 확인하세요.</p><button class="primary" data-new>새 대국 준비</button>')
   const p=state.pending[0]
   const decision = state.bookChoices || p
@@ -213,7 +219,7 @@ function ledger(s) {
     +' · 먼저 패스 '+special.early+'회, 나중에 패스 '+special.late+'회, 코인 '+special.coins+'개'
   return `<details class="panel ledger" open><summary>과학과 자원</summary><div class="science-layout">${scienceBoard(s)}<div class="inventory">
     <h3>내 책</h3><ul class="books">${books}</ul>
-    <h3>발전과 자원</h3><div class="development">${art('ship-level',s.sailing,'항해 '+s.sailing)}${art('spade-cost',3-s.terraforming,'삽당 도구 '+(3-s.terraforming))}<span>열쇠 <b>${s.keys}</b></span></div>
+    <h3>발전과 자원</h3><div class="development">${art('ship-level',s.sailing,'항해 '+s.sailing)}${art('spade-cost',3-s.terraforming,'삽당 도구 '+(3-s.terraforming))}<span class="key-count">${art('resources','key','열쇠')}<b>${s.keys}</b></span></div>
     <p class="summary-line">파워 그릇 I · II · III &nbsp; <b>${s.resources.bowls.join(' / ')}</b></p>
     <h3>내 보너스 타일</h3><div class="held-bonus">${art('round-bonus',s.bonusTiles.player)}<span>${bonusTiles[s.bonusTiles.player].label}</span></div></div></div>
     ${factionStatus?`<p class="summary-line"><b>${botName()}</b> · ${factionStatus}</p>`:''}</details>
@@ -228,13 +234,13 @@ function render() {
   for (const button of document.querySelectorAll('[data-view]')) button.setAttribute('aria-pressed',String(button.dataset.view===view))
   const shown = view==='game' && preview ? preview.next.state : state
   const r=shown?.round??0
-  const title=view==='records'?'대국 기록':view==='guide'?'게임 안내':preview?'행동 미리보기':state?.final?'최종 정산':state?'게임 테이블':'첫 대국 준비'
+  const title=view==='records'?'대국 기록':view==='guide'?'게임 안내':preview?.ready?'확정 대기':state?.final?'최종 정산':state?'게임 테이블':'첫 대국 준비'
   let content=`<div class="intro"><div><h1>${title}</h1><p>${labels[(state??config).playerTerrain]} ${humanName()} vs. ${labels[(state??config).automaTerrain]} ${botName()} · ${deal.difficulty}</p></div><div class="rounds"><span>라운드</span>${Array.from({length:6},(_,i)=>i+1===r?`<b>${i+1}</b>`:`<i class="${i+1<r?'done':''}">${i+1}</i>`).join('')}</div></div>`
   if (view==='records') content+=records()
-  else if (view==='guide') content+=`<article class="panel article"><h2>대국 설정</h2><p>난이도와 오토마 종족을 정하고, 배분된 세 계획판에서 플레이어 종족을 고르세요. 새 카드 배분은 선택 가능한 종족과 타일을 바꿉니다.</p><h2>내 차례</h2><p>지도에서 칸을 눌러 지형 변환·건설·개량 비용을 확인하세요. 과학·발전, 혁신·책, 파워 행동도 한 차례에 하나씩 선택할 수 있습니다. 행동을 고르면 지도와 자원에 예상 결과가 표시됩니다. 확정을 누르면 저장하고, 되돌리기를 누르면 다시 선택할 수 있습니다. 자원 교환은 행동 전후에 가능합니다.</p><h2>오토마와 패스</h2><p>오토마 차례에는 행동 카드와 지원 카드를 공개합니다. 인접 건물이 주는 파워는 수락하거나 거절할 수 있습니다. 먼저 패스한 쪽이 다음 라운드를 시작합니다.</p><h2>최종 점수</h2><p>6라운드에 양측이 패스하면 가장 큰 연결 영역, 네 과학 분야의 순위, 남은 자원을 정산합니다. 승점이 같으면 공동 승리입니다.</p></article>`
+  else if (view==='guide') content+=`<article class="panel article"><h2>대국 설정</h2><p>난이도와 오토마 종족을 정하고, 배분된 세 계획판에서 플레이어 종족을 고르세요. 새 카드 배분은 선택 가능한 종족과 타일을 바꿉니다.</p><h2>내 차례</h2><p>지도에서 칸을 눌러 지형 변환·건설·개량 비용을 확인하세요. 과학·발전, 혁신·책, 파워 행동도 한 차례에 하나씩 선택할 수 있습니다. 자원 교환, 본행동, 후속 선택은 지도와 자원에 바로 표시됩니다. 모두 마친 뒤 차례 마치기와 확정을 누르면 이번 차례 전체가 저장됩니다. 되돌리기를 누르면 차례 시작 상태로 돌아갑니다.</p><h2>오토마와 패스</h2><p>오토마 차례에는 행동 카드와 지원 카드를 공개합니다. 인접 건물이 주는 파워는 수락하거나 거절할 수 있습니다. 먼저 패스한 쪽이 다음 라운드를 시작합니다.</p><h2>최종 점수</h2><p>6라운드에 양측이 패스하면 가장 큰 연결 영역, 네 과학 분야의 순위, 남은 자원을 정산합니다. 승점이 같으면 공동 승리입니다.</p></article>`
   else {
     const scoring=shown?.scoring && !shown.final ? panel('라운드 득점',scoreArt(shown.deal,shown.round)+shown.scoring.triggers.map(t=>`<p class="summary-line">${labels[t.action]??t.action} · ${t.points}점</p>`).join('')+`<p class="muted">${botName()} 패스 · ${shown.scoring.automaPoints}점</p>`) : ''
-    content+=`${shown?.final?scores(shown):''}<div class="layout"><div>${map(shown)}${ledger(shown)}</div><aside class="side">${roster(shown)}${preview?previewControls():state?controls()+saveControls():setup()}${scoring}</aside></div>`
+    content+=`${shown?.final?scores(shown):''}<div class="layout"><div>${map(shown)}${ledger(shown)}</div><aside class="side">${roster(shown)}${shown ? (preview?.ready?'':controls(shown))+(preview?previewControls():saveControls()) : setup()}${scoring}</aside></div>`
   }
   app.innerHTML=content
 }
@@ -247,16 +253,16 @@ document.addEventListener('click',async event=>{
   notice.textContent=''
   try {
     if (el.dataset.view) view=el.dataset.view
-    else if (preview) {
-      if ('undo' in el.dataset) {
-        focusAfterRender=`[data-action="${preview.index}"]`
-      } else if ('confirm' in el.dataset) {
-        if (await acceptSession(preview.next) && preview.kind!=='convert') {
-          category='보드'
-          selected=null
-        }
-      } else return
+    else if ('undo' in el.dataset && preview) {
       preview=null
+      category='보드'
+      selected=null
+    } else if ('confirm' in el.dataset && preview?.ready) {
+      if (await acceptSession(preview.next)) {
+        preview=null
+        category='보드'
+        selected=null
+      }
     }
     else if ('startGame' in el.dataset) { await acceptSession(startSession(deal,market,{...config,playerBuildings:startingPieces(config)})); selected=null }
     else if ('load' in el.dataset) { if (!openSavedGame()) throw new Error('저장한 대국을 찾을 수 없습니다.') }
@@ -282,15 +288,16 @@ document.addEventListener('click',async event=>{
     } else if (el.dataset.category) { category=el.dataset.category; selected=null }
     else if (el.dataset.action!=null) {
       const index=Number(el.dataset.action)
-      const {action,label,enabled}=rows[index]
-      if (!enabled) return
-      const next=sessionAction(session,action)
+      const {action,enabled}=rows[index]
+      if (!enabled || preview?.ready) return
       if (action.kind==='automa') {
-        if (await acceptSession(next)) { category='보드'; selected=null }
+        if (preview) return
+        await acceptSession(sessionAction(session,action))
       } else {
-        preview={next,label,kind:action.kind,index}
-        focusAfterRender='.preview-panel h2'
+        preview=stagePlayerAction(session,preview,action)
+        if (preview.ready) focusAfterRender='.preview-panel h2'
       }
+      if (action.kind!=='convert') { category='보드'; selected=null }
     } else return
     render()
     if (focusAfterRender) app.querySelector(focusAfterRender)?.focus({preventScroll:true})

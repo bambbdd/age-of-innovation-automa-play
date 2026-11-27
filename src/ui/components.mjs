@@ -28,6 +28,7 @@ export function choiceArt(a,s) {
   if (a.kind==='tile-action') return art(a.source,a.id)
   if (a.kind==='special' && a.source==='bonus') return art('round-bonus',s.bonusTiles.player)
   if (a.kind==='special' && a.source==='competency') return art('competency',4)
+  if (a.kind==='key') return art('resources','key')
   if (a.track==='sailing') return art('ship-level',Math.min(3,s.sailing+1))
   if (a.track==='terraforming') return art('spade-cost',Math.max(1,2-s.terraforming))
   if (a.discipline) return art(['choose-book','pay-book'].includes(a.kind)?'books':'science-discipline',a.discipline)
