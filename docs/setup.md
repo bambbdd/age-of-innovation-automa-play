@@ -32,15 +32,13 @@ const position = placeStartingBuildings(deal, {
 
 `decision-cards.json`은 14장의 행동·지원·패스·배치 정보를 담는다. 카드와 난이도, 오토마 초기 과학 값은 로컬 헬퍼의 `Cards.ts`, `DifficultyLevelParameters.ts`, `ScienceDisciplineBonuses.ts`를 대조했다. 점수 타일 ID는 헬퍼 에셋 번호를 따른다. 1~5라운드에 같은 과학 분야 타일 3장을 모두 놓을 수 없고, 삽 사용 타일은 5·6라운드에 놓을 수 없다. 마지막 덮개는 같은 건물 종류를 중복시킬 수 없다. 6라운드에는 기본 타일과 덮개의 플레이어 점수 조건을 둘 다 사용하고, 오토마 패스 점수와 과학 분야는 덮개 값을 사용한다. [결정 카드](https://github.com/brdgm/age-of-innovation-solo-helper/blob/bde1baec322d97b1fc022df1e34e03f7818c4521/src/services/Cards.ts) · [점수 타일 원화](https://github.com/brdgm/age-of-innovation-solo-helper/tree/bde1baec322d97b1fc022df1e34e03f7818c4521/src/assets/icons/round-score)
 
-## 후속 구현에서 확인할 종족 카드
+## 오토마 특수 종족
 
-| 오토마 | 원문에서 대조할 항목 |
-|---|---|
-| 공생체족 | 청년의 지형 설정, 도구 배치·제거 시점 및 효과 |
-| 황폐족 | 휴경지 초기 상태, 황폐지 전환 대상과 보드에 미치는 효과 |
-| 고그놈족 | 업적 카드 2장의 조건, 토큰과 득점 시점 |
+- **공생체족**은 초기 배치 직후 플레이어에게 삽 두 개가 드는 미사용 지형 우선순위 카드 한 장을 무작위로 정한다. 종족 건설 뒤 플레이어 건물과 직접 인접한 빈 육지 중 이 카드의 지형 순위, 지원 카드의 방향·순번을 적용해 도구를 놓는다. 도구는 그 칸의 건설과 변환을 막는다.
+- **황폐족**의 휴경지는 플레이어에게 삽 하나가 드는 두 지형 중 오토마에게 더 먼 지형이다. 황폐지는 오토마에게 삽 하나가 드는 두 지형 중 플레이어에게 더 먼 지형이다. 종족 행동 때 작업장 건설을 처리하고, 플레이어 건물에 가까운 빈 휴경지를 황폐지로 두 번 바꾼다. 동률이면 지원 카드의 방향·순번을 따른다.
+- **고그놈족**은 업적 여섯 개 중 세 개를 뽑는다. 선택된 업적을 달성할 때마다 즉시 순서대로 8점, 16점, 24점을 받는다. 건물에서 파워를 3 이상 제안하는 업적은 플레이어의 수락 여부와 독립적이다. 점수 차이 업적은 라운드 종료 시 확인한다.
 
-위 세 종족을 선택하면 초기 배치 결과의 `requiresFactionCard`가 참이다. 초기 판정 데이터 이후의 개인 자원·수입·종족 보상과 위 특수 효과는 게임 엔진 구현 범위다.
+세 종족의 인쇄된 영문 카드와 업적 조건을 대조했다. [종족 카드 원본 사진](https://www.reddit.com/r/soloboardgaming/comments/1aujnea/comment/krkt6yl/) · [업적 카드 원본 사진](https://www.reddit.com/r/soloboardgaming/comments/1aujnea/comment/krkt7za/)
 
 ## 보드 이미지 재생성
 

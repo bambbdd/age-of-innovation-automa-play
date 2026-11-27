@@ -120,7 +120,7 @@ export function placeStartingBuildings(deal, { playerTerrain, playerFaction, pla
     if (smallBoard.find(cell => cell.id === hex)?.terrain !== playerTerrain) {
       throw new Error('Choose an empty native terrain hex')
     }
-    return { owner: 'player', hex, building }
+    return { owner: 'player', hex, building, ...(building==='tower' ? {neutral:true} : {}) }
   })
   if (new Set(player.map(piece => piece.hex)).size !== player.length) throw new Error('Occupied hex')
   const bot = initialAutomaWorkshops(automaTerrain, deal.setupCardId)
@@ -131,7 +131,6 @@ export function placeStartingBuildings(deal, { playerTerrain, playerFaction, pla
     automaScience: { banking: 0, law: 0, engineering: 0, medicine: 0, ...automaStartingScience[automaFaction] },
     bonusTiles: { player: playerBonus, automa: deal.bonusTiles.automa,
       pool: deal.bonusTiles.choices.filter(id => id !== playerBonus).map(id => ({ id, coins: 1 })) },
-    requiresFactionCard: ['symbionts', 'blight', 'gognomes'].includes(automaFaction),
   }
 }
 

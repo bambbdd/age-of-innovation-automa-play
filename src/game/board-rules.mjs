@@ -36,10 +36,18 @@ function sameSpan([a, b], from, to) {
   return (a === from && b === to) || (a === to && b === from)
 }
 
-export function placeBridge(position, owner, from, to) {
+// A bridge spans the shared side of two neighboring hexes. The Moles may
+// bridge that side even when either or both of the hexes are land.
+export const moleBridgeSites = smallBoard.flatMap((a, index) => a.terrain === 'river' ? [] :
+  smallBoard.slice(index+1).filter(b => b.terrain !== 'river' && !neighbors.get(a.id).includes(b.id) &&
+    neighbors.get(a.id).filter(id=>neighbors.get(b.id).includes(id)).length === 2).map(b=>[a.id,b.id]))
+
+export function placeBridge(position, owner, from, to, { moleAction = false } = {}) {
   if (owner !== 'player') throw new Error('Only the player can build bridges')
   const spans = builtBridges(position)
-  if (!bridgeSites.some(site => sameSpan(site, from, to)) || spans.some(site => sameSpan(site, from, to))) {
+  if (moleAction && position.playerFaction !== 'moles') throw new Error('두더지족의 다리 행동입니다.')
+  const sites = moleAction ? moleBridgeSites : bridgeSites
+  if (!sites.some(site => sameSpan(site, from, to)) || spans.some(site => sameSpan(site, from, to))) {
     throw new Error('Unavailable bridge site')
   }
   if (!position.buildings.some(b => b.owner === owner && [from, to].includes(b.hex))) {
@@ -103,6 +111,7 @@ export function openBuildHexes(position, buildings, sailing) {
     for (const id of landInReach(position, hex, sailing)) reachable.add(id)
   }
   for (const { hex } of position.buildings) reachable.delete(hex)
+  for (const hex of position.botSpecial?.tools ?? []) reachable.delete(hex)
   return smallBoard.filter(c => reachable.has(c.id)).map(c => c.id)
 }
 
@@ -181,15 +190,29 @@ export function areaScoring(position, playerSailing, { flight = false } = {}) {
 
 const terrainCircle = ['desert', 'wasteland', 'mountain', 'forest', 'lake', 'swamp', 'plains']
 
-function spadesBetween(from, to) {
+export function canTravel(position, hex, travel) {
+  if (!(travel === 'tunnel' && position.playerFaction === 'moles' || travel === 'flight' && position.palace === 9)) return false
+  if (position.botSpecial?.tools?.includes(hex) || !cells.has(hex) || cells.get(hex).terrain === 'river' || position.buildings.some(b=>b.hex===hex)) return false
+  const owned = position.buildings.filter(b=>b.owner==='player')
+  if (owned.some(b=>adjacentLand(position,b.hex).has(hex))) return false
+  let frontier = owned.map(b=>b.hex)
+  for (let step=0; step < (travel === 'flight' ? 3 : 2); step++) {
+    frontier = [...new Set(frontier.flatMap(id=>neighbors.get(id)))]
+    if (frontier.includes(hex)) return true
+  }
+  return false
+}
+
+export function spadesBetween(from, to) {
   const distance = Math.abs(terrainCircle.indexOf(from) - terrainCircle.indexOf(to))
   return Math.min(distance, terrainCircle.length - distance)
 }
 
 // One target of an ordinary Terraform and Build action. Resource payment belongs to the turn engine.
-export function terraformAndBuild(position, hex, sailing, { terrain = position.playerTerrain, build = true } = {}) {
+export function terraformAndBuild(position, hex, sailing, { terrain = position.playerTerrain, build = true, travel } = {}) {
   const player = position.buildings.filter(b => b.owner === 'player')
-  if (!openBuildHexes(position, player, sailing).includes(hex)) throw new Error('Hex occupied or out of reach')
+  const reached = travel ? canTravel(position,hex,travel) : openBuildHexes(position,player,sailing).includes(hex)
+  if (!reached) throw new Error('Hex occupied or out of reach')
   const from = terrainAt(position, hex)
   if (!nativeTerrains.includes(terrain)) throw new Error('Unknown terrain')
   const spades = spadesBetween(from, terrain)

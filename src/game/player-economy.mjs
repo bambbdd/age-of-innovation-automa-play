@@ -1,5 +1,6 @@
 import { adjacentLand } from './board-rules.mjs'
-import { smallBoard } from './small-board.mjs'
+import { smallBoard, nativeTerrains } from './small-board.mjs'
+import { startingScience } from './player-factions.mjs'
 
 export const disciplines = ['banking', 'law', 'engineering', 'medicine']
 const zeroTracks = () => Object.fromEntries(disciplines.map(name => [name, 0]))
@@ -12,23 +13,31 @@ export const bonusTiles = {
   4: { label: '책 1권 · 무료 다리', income: { books: 1 }, special: 'bridge' },
   5: { label: '도구 1개 · 패스 시 궁전과 대학당 4점', income: { tools: 1 } },
   6: { label: '도구 2개 · 과학 1칸', income: { tools: 2 }, special: 'science' },
-  7: { label: '마력 4 · 동전 2개', income: { power: 4, coins: 2 } },
-  8: { label: '동전 6개', income: { coins: 6 } },
-  9: { label: '마력 3 · 길드 건설 3점', income: { power: 3 } },
-  10: { label: '동전 4개 · 패스 시 학교당 과학 1칸', income: { coins: 4 } },
+  7: { label: '파워 4 · 코인 2개', income: { power: 4, coins: 2 } },
+  8: { label: '코인 6개', income: { coins: 6 } },
+  9: { label: '파워 3 · 교역소 건설 3점', income: { power: 3 } },
+  10: { label: '코인 4개 · 패스 시 양성소당 과학 1칸', income: { coins: 4 } },
 }
 
 export function initializeEconomy(state) {
-  if (state.playerTerrain !== 'mountain' || state.playerFaction !== 'navigators') {
-    throw new Error('첫 플레이는 산 계획판과 항해사로 진행합니다.')
-  }
+  const terrain = state.playerTerrain, faction = state.playerFaction
+  if (!nativeTerrains.includes(terrain) || !Object.hasOwn(startingScience,faction)) throw new Error('계획판과 종족을 확인하세요.')
   state.resources = { coins: 15, tools: 3, scholars: 0, bowls: [5, 7, 0], books: zeroTracks() }
   state.playerScience = zeroTracks()
   state.keys = 0
-  state.sailing = 0
+  state.sailing = terrain === 'lake' ? 1 : 0
   state.terraforming = 0
   state.bookChoices = 0
-  advanceScience(state, 'law', 3)
+  if (terrain === 'swamp') { state.resources.bowls = [3,9,0]; state.resources.scholars++ }
+  if (terrain === 'forest') state.resources.bowls = [4,8,0]
+  if (terrain === 'wasteland') { state.bookChoices++; state.resources.tools++ }
+  if (faction === 'goblins' || faction === 'psychics') state.resources.tools++
+  for (const key of disciplines) {
+    advanceScience(state,key,(startingScience[faction][key] ?? 0) + Number(terrain === 'forest'))
+  }
+  if (faction === 'lizards') state.pending.push({kind:'science',left:2})
+  if (faction === 'inventors' || faction === 'monks') state.pending.push({kind:'competency'})
+  if (terrain === 'desert') state.pending.push({kind:'spades',left:1})
   return state
 }
 
@@ -124,7 +133,9 @@ export function collectIncome(state) {
   const bonus = bonusTiles[state.bonusTiles.player].income
   // The fifth workshop reveals a blank space. The mountain board has an unconditional two-coin income.
   state.resources.tools += 1 + workshops - Number(workshops >= 5) + (bonus.tools ?? 0)
-  state.resources.coins += 2 + 2 * guilds + Number(guilds > 0) + (bonus.coins ?? 0)
+  const mountain = state.playerTerrain === 'mountain'
+  state.resources.coins += (mountain ? 2 + Number(guilds > 0) : 0) + 2 * guilds + (bonus.coins ?? 0)
+  if (state.playerFaction === 'omar') { state.resources.coins += 2; chargePower(state,2) }
   gainScholars(state, count('school') + count('university') + (bonus.scholars ?? 0))
   chargePower(state, guilds + Math.max(0, guilds - 2) + (bonus.power ?? 0))
   state.bookChoices += bonus.books ?? 0
@@ -153,19 +164,21 @@ export function buildingCost(state, hex, type, spades = 0) {
 }
 
 export function effectiveSailing(state) {
-  return state.sailing + Number(state.bonusTiles.player === 1)
+  return state.sailing + Number(state.phase === 'actions' && state.bonusTiles.player === 1)
 }
 
-export function advanceTrack(state, track) {
+export function advanceTrack(state, track, {free = false} = {}) {
   if (track === 'sailing') {
+    if (free && state.sailing >= 3) return
     if (state.sailing >= 3) throw new Error('항해가 이미 최고 단계입니다.')
-    pay(state, { coins: 4, scholars: 1 })
+    if (!free) pay(state, { coins: 4, scholars: 1 })
     state.sailing++
     if (state.sailing === 2) state.bookChoices += 2
     else state.points.player += state.sailing === 1 ? 2 : 4
   } else if (track === 'terraforming') {
+    if (free && state.terraforming >= 2) return
     if (state.terraforming >= 2) throw new Error('지형 변환이 이미 최고 단계입니다.')
-    pay(state, { coins: 5, tools: 1, scholars: 1 })
+    if (!free) pay(state, { coins: state.playerTerrain === 'plains' ? 1 : 5, tools: 1, scholars: 1 })
     state.terraforming++
     if (state.terraforming === 1) state.bookChoices += 2
     else state.points.player += 6
@@ -187,21 +200,21 @@ export function bonusPassPoints(state) {
 }
 
 export const resourceConversions = {
-  sacrifice: '마력 II 2개 → III 1개',
-  powerScholar: '마력 5 → 학자 1명',
-  powerBook: '마력 5 → 책 1권',
-  powerTool: '마력 3 → 도구 1개',
-  powerCoin: '마력 1 → 동전 1개',
+  sacrifice: '파워 II 2개 → III 1개',
+  powerScholar: '파워 5 → 학자 1명',
+  powerBook: '파워 5 → 책 1권',
+  powerTool: '파워 3 → 도구 1개',
+  powerCoin: '파워 1 → 코인 1개',
   scholarTool: '학자 1명 → 도구 1개',
-  toolCoin: '도구 1개 → 동전 1개',
-  bookCoin: '책 1권 → 동전 1개',
+  toolCoin: '도구 1개 → 코인 1개',
+  bookCoin: '책 1권 → 코인 1개',
 }
 
 export function convertResource(state, id, discipline) {
   const res = state.resources
   switch (id) {
     case 'sacrifice':
-      if (res.bowls[1] < 2) throw new Error('마력 그릇 II에 토큰 2개가 필요합니다.')
+      if (res.bowls[1] < 2) throw new Error('파워 그릇 II에 토큰 2개가 필요합니다.')
       res.bowls[1] -= 2
       res.bowls[2]++
       break

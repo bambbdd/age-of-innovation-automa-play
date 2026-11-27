@@ -10,7 +10,7 @@ function bestHexes(hexes, value) {
   return hexes.filter((_, i) => values[i] === best)
 }
 
-function directionalSelection(hexes, support) {
+export function directionalSelection(hexes, support) {
   const ordered = smallBoard.filter(cell => hexes.includes(cell.id)).map(cell => cell.id)
   if (support.direction === 'left-up') ordered.reverse()
   return ordered[(support.count - 1) % ordered.length]
@@ -44,7 +44,7 @@ function upgrade(position, support, trace) {
 }
 
 // Resolves an ordinary board action using the support half of a decision card.
-export function resolveAutomaBoardAction(position, action, supportCardId, round) {
+export function resolveAutomaBoardAction(position, action, supportCardId, round, faction = null) {
   const support = cards.find(card => card.id === supportCardId)?.support
   if (!support) throw new Error('Unknown support card')
   const sailing = automaSailing(position, round)
@@ -61,7 +61,9 @@ export function resolveAutomaBoardAction(position, action, supportCardId, round)
   const unmarked = bot.filter(b => !b.marked).map(b => b.hex)
   const fromMarked = support.structure.startsWith('marked')
   const sources = bot.filter(b => b.marked === fromMarked)
-  trace.reachable = openBuildHexes(position, sources, sailing)
+  trace.reachable = faction === 'wanderers'
+    ? smallBoard.filter(c=>c.terrain!=='river' && !position.buildings.some(b=>b.hex===c.id)).map(c=>c.id)
+    : openBuildHexes(position, sources, sailing)
   if (trace.reachable.length === 0) {
     trace.fallback = 'no-reachable-hex'
     return upgrade(position, support, trace)
@@ -71,7 +73,7 @@ export function resolveAutomaBoardAction(position, action, supportCardId, round)
   const toUnmarked = automaDistances(position, unmarked)
   const distance = (map, hex) => map.get(hex) ?? Infinity
   trace.bringTogether = trace.reachable
-  if (support.structure.endsWith('-reaching') && !marked.some(hex => {
+  if (faction !== 'wanderers' && support.structure.endsWith('-reaching') && !marked.some(hex => {
     const reach = landInReach(position, hex, sailing)
     return unmarked.some(id => reach.has(id))
   })) {
@@ -82,12 +84,22 @@ export function resolveAutomaBoardAction(position, action, supportCardId, round)
     if (closer.length) trace.bringTogether = closer
   }
 
-  const order = priorities[support.terrainPriority][position.automaTerrain]
-  trace.terrain = bestHexes(trace.bringTogether, hex => order.indexOf(terrainAt(position, hex)))
+  const playerPriority = faction === 'mimics' || faction === 'kuddlers'
+  const order = priorities[support.terrainPriority][playerPriority ? position.playerTerrain : position.automaTerrain]
   const humans = position.buildings.filter(b => b.owner === 'player').map(b => b.hex)
   const toPlayer = automaDistances(position, humans)
-  trace.closestPlayer = bestHexes(trace.terrain, hex => distance(toPlayer, hex))
-  const hex = directionalSelection(trace.closestPlayer, support)
+  const closest = hex => distance(toPlayer,hex)
+  const priority = hex => order.indexOf(terrainAt(position,hex))
+  let options = trace.bringTogether
+  if (faction === 'powermongers') options = bestHexes(options,hex=>-powerOffered(position,hex))
+  if (faction === 'kuddlers') {
+    trace.closestPlayer = bestHexes(options,closest)
+    options = trace.terrain = bestHexes(trace.closestPlayer,priority)
+  } else {
+    trace.terrain = bestHexes(options,priority)
+    options = trace.closestPlayer = bestHexes(trace.terrain,closest)
+  }
+  const hex = directionalSelection(options, support)
   trace.nearestMarked = distance(toMarked, hex)
   trace.nearestUnmarked = distance(toUnmarked, hex)
   const mark = shouldMarkNewWorkshop(trace.nearestMarked, trace.nearestUnmarked)
