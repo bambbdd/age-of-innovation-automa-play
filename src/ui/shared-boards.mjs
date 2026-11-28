@@ -1,6 +1,7 @@
 import { actionDescription, labels, subjects } from '../game/first-game.mjs'
 import { competencyRewards, competencySlot, innovationNames, innovationSlotCost } from '../game/first-game-tiles.mjs'
 import { art } from './components.mjs'
+import { palaceInfo } from './tile-text.mjs'
 
 const display = name => `<img class="display-print" src="./public/components/displays/${name}.webp" alt="">`
 const innovationLimit = '혁신 3장을 모두 개발했습니다.'
@@ -50,10 +51,18 @@ export function sharedBoards(deal,position,selected,detail) {
     return button('competency',id,content,tileName('competency',id)+' · '+competencyBenefit(position,i)+(owned?' · 보유':''),selected,loc)
   }).join('')
   const top=innovationSlotCost(position,0), lower=innovationSlotCost(position,2)
+  const palaces=deal.palaces.map(id=>{
+    const {name}=palaceInfo(id)
+    const owned=position.palace===id
+    const caption=name+(owned?' · 보유':'')
+    return button('palace',id,art('palace',id)+'<span>'+caption+'</span>',caption,selected)
+  }).join('')
   const actions=`<section class="panel shared-panel"><h2>공용 행동</h2>
     <h3>파워 행동</h3>${actionStrip('power',[1,2,3,4,5,6],position,selected)}
     <h3>책 행동</h3>${actionStrip('book',deal.bookActions,position,selected)}
-    ${/^(power|book)-/.test(selected)?detail:''}</section>`
+    ${/^(power|book)-/.test(selected)?detail:''}
+    <h3>사용 가능 궁전</h3><div class="palace-offer">${palaces}</div>
+    ${selected?.startsWith('palace-')?detail:''}</section>`
   const market=`<section class="panel shared-panel"><h2>혁신 · 적성 진열판</h2>
     <p class="board-note">${atLimit ? innovationLimit : `혁신 윗줄은 두 분야 책 각 2권과 자유 책 ${top.anyBooks}권, 아랫줄은 해당 분야 책 2권과 자유 책 ${lower.anyBooks}권입니다. ${top.coins?'혁신마다 코인 5개를 추가로 냅니다.':'궁전 건설로 코인 비용은 0입니다.'}`}</p>
     <div class="market-print"><div class="discipline-headings">${subjects.map(k=>`<span>${art('books',k)}${labels[k]}</span>`).join('')}</div>
@@ -65,6 +74,10 @@ export function sharedBoards(deal,position,selected,detail) {
 }
 
 export function inspectedTile(kind,id,deal,s) {
+  if (kind==='palace') {
+    const {name,effect,income}=palaceInfo(id)
+    return [name,[effect,income].filter(Boolean).join(' ')]
+  }
   if (kind==='competency') return [tileName(kind,id),competencyBenefit(s,deal.competencies.indexOf(id))]
   if (kind==='innovation') {
     const owned=s.innovations.player.includes(id)?'플레이어 보유':s.innovations.automa?.includes(id)?'오토마 보유':''

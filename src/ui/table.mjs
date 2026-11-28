@@ -246,7 +246,7 @@ function supply(shown) {
     const [kind,value]=inspected.split('-')
     const id=Number(value)
     const [name,info]=inspectedTile(kind,id,deal,position)
-    if (shown && !shown.final && !preview?.ready) {
+    if (kind!=='palace' && shown && !shown.final && !preview?.ready) {
       const menu=kind==='power'?'파워·특수':'혁신·책'
       boardRows=choiceRows(shown,menu,null).filter(row=>row.action.kind===kind && row.action.id===id)
     }

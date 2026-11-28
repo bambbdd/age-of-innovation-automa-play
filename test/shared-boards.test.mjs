@@ -1,9 +1,27 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createFirstGame, play } from '../src/game/first-game.mjs'
+import { createSetupDeal } from '../src/game/setup.mjs'
+import { suggestions } from '../src/ui/choices.mjs'
 import { inspectedTile, sharedBoards } from '../src/ui/shared-boards.mjs'
 import { personalBoard, personalStorage } from '../src/ui/personal-board.mjs'
 import { collectIncome, planningIncome } from '../src/game/player-economy.mjs'
+
+test('the palace display offers exactly the tiles available at construction', () => {
+  const s=createFirstGame({bonus:2})
+  s.pending=[{kind:'palace'}]
+  for (const deal of [s.deal,createSetupDeal({seed:11})]) {
+    s.deal=deal
+    const html=sharedBoards(deal,s,null,'')
+    const ids=Array.from(html.matchAll(/data-inspect="palace-(\d+)"/g),m=>Number(m[1]))
+    assert.deepEqual(ids,suggestions(s,'보드',null).map(a=>a.id))
+    for (const id of ids) assert.ok(html.includes('/palace/'+id+'.webp'))
+  }
+  const acquired=play(s,{kind:'palace',id:17})
+  const held=sharedBoards(acquired.deal,acquired,'palace-17','')
+  assert.match(held,/aria-label="승점 궁전 · 보유"/)
+  assert.deepEqual(inspectedTile('palace',17,acquired.deal,acquired),['승점 궁전','건설 즉시 10점을 받습니다. 수입 · 파워 충전 2'])
+})
 
 test('the action boards follow Automa blocks and reopen at the start of the next round', () => {
   let s=createFirstGame({bonus:2})
