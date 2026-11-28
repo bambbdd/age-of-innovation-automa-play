@@ -1,4 +1,4 @@
-import { adjacentLand } from './board-rules.mjs'
+import { adjacentLand, buildingSupply, placedFromSupply } from './board-rules.mjs'
 import { smallBoard, nativeTerrains } from './small-board.mjs'
 import { startingScience } from './player-factions.mjs'
 
@@ -93,10 +93,14 @@ export function offerPower(state, amount, accept) {
   return received
 }
 
+export function availableScholars(state) {
+  const committed = Object.values(state.scholarSlots ?? {}).flat().filter(owner => owner === 'player').length
+  return 7 - committed - state.resources.scholars
+}
+
 export function gainScholars(state, n) {
   quantity(n)
-  const committed = Object.values(state.scholarSlots ?? {}).flat().filter(owner => owner === 'player').length
-  const gained = Math.min(n, 7 - committed - state.resources.scholars)
+  const gained = Math.min(n, availableScholars(state))
   state.resources.scholars += gained
   return gained
 }
@@ -125,24 +129,48 @@ export function advanceScience(state, discipline, levels, { useKey = true } = {}
   return after - before
 }
 
+// Slots are uncovered from left to right. The always-visible income is added separately.
+export function slotIncome(terrain,type,slot) {
+  if (type==='workshop') return slot===5 ? {} : {tools:1}
+  if (type==='guild') return {coins:terrain==='mountain' && slot===1 ? 3 : 2, power:slot<=2 ? 1 : 2}
+  if (type==='school' || type==='university') return {scholars:1}
+  return {}
+}
+
+export function sumIncome(...sources) {
+  const total={}
+  for (const source of sources) {
+    for (const [key,n] of Object.entries(source)) total[key]=(total[key]??0)+n
+  }
+  return total
+}
+
+export function baseIncome(terrain) {
+  return terrain==='mountain' ? {tools:1,coins:2} : {tools:1}
+}
+
+export function planningIncome(state) {
+  const sources=[baseIncome(state.playerTerrain),bonusTiles[state.bonusTiles.player].income]
+  if (state.playerFaction==='omar') sources.push({coins:2,power:2})
+  for (const type of Object.keys(buildingSupply)) {
+    const built=placedFromSupply(state,'player',type)
+    for (let slot=1;slot<=built;slot++) sources.push(slotIncome(state.playerTerrain,type,slot))
+  }
+  if (state.playerScience.banking>=9) sources.push({coins:3})
+  if (state.playerScience.law>=9) sources.push({power:6})
+  if (state.playerScience.engineering>=9) sources.push({tools:1})
+  if (state.playerScience.medicine>=9) sources.push({points:3})
+  return sumIncome(...sources)
+}
+
 export function collectIncome(state) {
-  const pieces = state.buildings.filter(b => b.owner === 'player' && !b.neutral)
-  const count = type => pieces.filter(b => b.building === type).length
-  const workshops = count('workshop')
-  const guilds = count('guild')
-  const bonus = bonusTiles[state.bonusTiles.player].income
-  // The fifth workshop reveals a blank space. The mountain board has an unconditional two-coin income.
-  state.resources.tools += 1 + workshops - Number(workshops >= 5) + (bonus.tools ?? 0)
-  const mountain = state.playerTerrain === 'mountain'
-  state.resources.coins += (mountain ? 2 + Number(guilds > 0) : 0) + 2 * guilds + (bonus.coins ?? 0)
-  if (state.playerFaction === 'omar') { state.resources.coins += 2; chargePower(state,2) }
-  gainScholars(state, count('school') + count('university') + (bonus.scholars ?? 0))
-  chargePower(state, guilds + Math.max(0, guilds - 2) + (bonus.power ?? 0))
-  state.bookChoices += bonus.books ?? 0
-  if (state.playerScience.banking >= 9) state.resources.coins += 3
-  if (state.playerScience.law >= 9) chargePower(state, 6)
-  if (state.playerScience.engineering >= 9) state.resources.tools++
-  if (state.playerScience.medicine >= 9) state.points.player += 3
+  const income=planningIncome(state)
+  state.resources.tools+=income.tools
+  state.resources.coins+=income.coins??0
+  gainScholars(state,income.scholars??0)
+  chargePower(state,income.power??0)
+  state.bookChoices+=income.books??0
+  state.points.player+=income.points??0
 }
 
 export function buildingCost(state, hex, type, spades = 0) {
@@ -219,8 +247,7 @@ export function convertResource(state, id, discipline) {
       res.bowls[2]++
       break
     case 'powerScholar': {
-      const committed = Object.values(state.scholarSlots ?? {}).flat().filter(owner => owner === 'player').length
-      if (res.scholars + committed >= 7) throw new Error('공급처에 남은 학자가 없습니다.')
+      if (availableScholars(state) <= 0) throw new Error('공급처에 남은 학자가 없습니다.')
       pay(state, { power: 5 })
       res.scholars++
       break

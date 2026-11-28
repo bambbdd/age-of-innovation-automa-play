@@ -1,23 +1,10 @@
 import { actionDescription, labels, subjects } from '../game/first-game.mjs'
-import { competencyRewards, competencySlot, innovationNames, innovationSlotCost, palaceRewards } from '../game/first-game-tiles.mjs'
+import { competencyRewards, competencySlot, innovationNames, innovationSlotCost } from '../game/first-game-tiles.mjs'
 import { art } from './components.mjs'
 
 const display = name => `<img class="display-print" src="./public/components/displays/${name}.webp" alt="">`
 const innovationLimit = '혁신 3장을 모두 개발했습니다.'
 const tileName = (kind,id) => kind==='innovation' ? innovationNames[id] : competencyRewards[id].name
-
-export function ownedTiles(s) {
-  const groups = [
-    ['적성 타일','competency',s.competencies],
-    ['혁신','innovation',s.innovations.player],
-    ['궁전 타일','palace',s.palace ? [s.palace] : []],
-  ]
-  return `<div class="owned-tiles">${groups.map(([label,kind,ids])=>`<section><h3>${label}</h3>${ids.length ?
-    ids.map(id=>{
-      const name=kind==='palace' ? palaceRewards[id].name : tileName(kind,id)
-      return `<figure>${art(kind,id)}<figcaption>${name}</figcaption></figure>`
-    }).join('') : '<small>없음</small>'}</section>`).join('')}</div>`
-}
 
 function button(kind,id,content,description,selected,style='') {
   const key=kind+'-'+id

@@ -741,7 +741,6 @@ select {
 .score-tile img { width:100%; display:block; }
 .score-tile img + img { position:absolute; top:0; right:0; width:auto; height:100%; }
 
-.science-layout { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(150px,1fr); align-items:start; gap:clamp(12px,3vw,32px); margin:12px 0; }
 .science-figure { margin:0; }
 .science-headings { display:grid; grid-template-columns:repeat(4,1fr); padding:0 3.5%; max-width:440px; margin:0 auto 4px; text-align:center; font-size:13px; font-weight:650; }
 .science-board { position:relative; max-width:440px; margin:auto; }
@@ -750,28 +749,13 @@ select {
 .track-piece .wood { width:100%; filter:drop-shadow(0 0 1px white) drop-shadow(0 1px 1px #302419); }
 .component-key { display:flex; flex-wrap:wrap; justify-content:center; gap:12px; font-size:13px; margin-top:6px; }
 .component-key span .wood { margin-right:3px; }
-.inventory { min-width:0; }
-.inventory h3 { font-size:16px; margin:0 0 7px; }
-.inventory h3:not(:first-child) { margin-top:16px; }
-.books { list-style:none; padding:0; margin:0; }
-.books li { display:flex; align-items:center; gap:8px; border-bottom:1px solid var(--line); padding:5px 0; font-size:16px; }
-.books li img { width:24px; height:32px; }
-.books li b { margin-left:auto; }
-.development,.held-bonus { display:flex; align-items:center; gap:10px; font-size:16px; }
-.development img { width:40px; height:40px; }
-.held-bonus img { width:44px; height:auto; }
 @media(max-width:570px) {
-  .science-layout { grid-template-columns:minmax(0,1fr); }
-  .books { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); column-gap:12px; }
   .ledger td,.ledger th { padding:4px; }
   .ledger .score-tile { min-width:50px; }
 }
 
 .board-token .component-art { width:1em; height:1em; vertical-align:middle; }
 
-.inventory .summary-line { font-size:16px; }
-.development { flex-wrap:wrap; }
-.development img[src*="/spade-cost/"] { width:auto; max-width:68px; height:40px; border-radius:2px; }
 .preview-panel { border-color:var(--green); }
 .preview-changes { padding:0; margin:.65rem 0; list-style:none; }
 .preview-changes li { display:flex; flex-wrap:wrap; justify-content:space-between; gap:.5em; border-bottom:1px solid var(--line); padding:.2em 0; }
@@ -780,15 +764,13 @@ select {
 .preview-buttons { display:flex; gap:.5rem; margin-top:.85rem; }
 .preview-buttons button { flex:1; width:auto; margin:0; }
 
-.key-count { display:inline-flex; align-items:center; gap:5px; }
-.key-count img { width:30px; height:34px; }
 .preview-changes img[alt="열쇠"] { width:22px; height:25px; }
 .turn-actions { margin:.35em 0; padding-left:1.5em; }
 
 .round-boards { display:grid; gap:10px; min-width:0; container-type:inline-size; }
 .round-boards .shared-panel { padding:12px; }
 .shared-panel h2 { margin:0 0 6px; font-size:18px; }
-.shared-panel h3,.owned-tiles h3 { margin:8px 0 6px; font-size:15px; }
+.shared-panel h3 { margin:8px 0 6px; font-size:15px; }
 .action-strip { display:grid; gap:4px; align-items:center; }
 .power-strip { grid-template-columns:repeat(6,minmax(0,1fr)); max-width:392px; }
 .book-strip { grid-template-columns:repeat(3,minmax(0,1fr)); max-width:240px; background:url('../../public/components/displays/book-actions-background.webp') center/100% 100%; padding:.8% 1.6%; }
@@ -808,11 +790,81 @@ select {
 .slot-owned { position:absolute; right:0; bottom:0; }
 .slot-details { border-top:1px solid var(--line); margin-top:10px; padding-top:8px; }
 .slot-details .actions { margin-top:6px; }
-.owned-tiles { margin:12px 0; border-top:1px solid var(--line); display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
-.owned-tiles figure { margin:6px 0 12px; }
-.owned-tiles img { display:block; width:100%; max-width:110px; max-height:70px; object-fit:contain; object-position:left center; }
-.owned-tiles figcaption,.owned-tiles small { font-size:13px; }
 @container (max-width:350px) {
   .power-strip { grid-template-columns:repeat(3,minmax(0,1fr)); max-width:240px; }
   .slot-owner,.slot-owned { padding:1px 2px; }
+}
+
+.planning-area { container-type:inline-size; }
+.player-board {
+  margin-top:12px; padding:clamp(10px,2%,18px); border:1px solid #61432f; border-radius:10px;
+  background:#563923 url('../../public/components/displays/planning-wood.webp') repeat;
+  background-size:230px auto; color:#302720;
+}
+.player-board h2,.personal-storage h2 { margin:0 0 4px; }
+.player-board h3,.personal-storage h3 { margin:0 0 6px; font-size:16px; }
+.player-board h4 { margin:0; font-size:14px; }
+.faction-head,.planning-tracks>section,.planning-tiles>section,.income-forecast {
+  background:#f7f0df; border:1px solid #ae936c; border-radius:5px; padding:10px 12px;
+}
+.faction-head { display:flex; align-items:center; gap:14px; background:#ede2c9; }
+.faction-head>img { width:clamp(76px,20%,145px); height:auto; border-radius:3px; }
+.faction-head p,.palace-slot p { font-size:14px; margin:3px 0; }
+.faction-head small,.building-reserve>p,.income-forecast>p { font-size:13px; color:#63513d; }
+.planning-grid { display:grid; grid-template-columns:minmax(0,1.65fr) minmax(0,1fr); gap:8px; margin:8px 0; }
+.planning-tracks,.planning-tiles { display:flex; flex-direction:column; gap:8px; min-width:0; }
+.building-reserve,.planning-tiles>section:last-child { flex-grow:1; }
+.upgrade-track { display:flex; flex-wrap:wrap; column-gap:8px; align-items:center; margin:6px 0; }
+.upgrade-track h4 { min-width:58px; }
+.upgrade-track>div { display:flex; align-items:center; gap:5px; }
+.upgrade-step { padding:2px; display:grid; border:2px solid transparent; opacity:.48; border-radius:4px; }
+.upgrade-step[aria-current=step] { border-color:#205041; background:#fff9e6; opacity:1; box-shadow:0 1px 2px #573c2738; }
+.upgrade-step img { height:30px; width:auto; max-width:48px; }
+.building-reserve>p,.income-forecast>p { margin:0 0 6px; }
+.stock-row { margin:6px 0 0; }
+.stock-label { font-size:14px; font-weight:600; margin-bottom:3px; }
+.stock-label b { font-variant-numeric:tabular-nums; margin-left:4px; color:#625442; }
+.stock-slots { display:flex; align-items:stretch; gap:3px; }
+.stock-slot { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; min-width:0; min-height:31px;
+  width:40px; background:#b99870; border:1px solid #977650; border-radius:4px; box-shadow:inset 0 1px 2px #533c243d; }
+.stock-guild .stock-slot,.stock-palace .stock-slot { width:77px; }
+.stock-slot .wood { width:24px; max-width:100%; }
+.stock-slot.revealed { background:#fff4cc; color:#3c311d; border-color:#b2965e; }
+.revealed>span { display:inline-flex; align-items:center; gap:1px; margin:0 2px; font-size:12px; }
+.revealed img,.revealed .wood { width:14px; height:16px; object-fit:contain; }
+.bowl-cycle { width:100%; max-width:190px; aspect-ratio:1.02; margin:auto; position:relative; }
+.power-bowl { position:absolute; width:48%; aspect-ratio:1; border-radius:50%; background-size:100% 100%; filter:drop-shadow(0 1px 1px #614034); }
+.bowl-1 { left:0; bottom:0; }
+.bowl-2 { left:0; top:0; }
+.bowl-3 { right:0; top:25%; }
+.bowl-tokens { position:absolute; inset:17% 13% 21%; display:flex; align-content:center; justify-content:center; flex-wrap:wrap; }
+.bowl-tokens img { width:23%; height:24%; object-fit:contain; filter:drop-shadow(0 0 1px white); }
+.power-bowl b { position:absolute; left:50%; bottom:1%; transform:translateX(-50%); background:#312434; color:white; padding:0 5px;
+  border-radius:6px; font:600 13px/1.45 Georgia,serif; white-space:nowrap; }
+.palace-slot>img { width:min(100%,128px); display:block; margin:0 0 5px; }
+.palace-slot small { color:#534537; }
+.innovation-slots { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px; }
+.innovation-slots figure,.stored-tiles figure { margin:0; min-width:0; }
+.innovation-slots img { width:100%; display:block; }
+.innovation-slots figcaption,.stored-tiles figcaption { font-size:13px; }
+.empty-slot { display:grid; align-content:center; justify-content:center; text-align:center; border:1px dashed #ac9678; border-radius:4px; background:#e9dcc3; min-height:40px; font-size:13px; color:#6c5941; }
+.income-forecast { background:#e7eddf; border-color:#95a48a; }
+.income-forecast ul { display:flex; flex-wrap:wrap; gap:4px 16px; padding:0; margin:0; list-style:none; }
+.income-forecast li { font-size:15px; }
+.income-forecast small { display:block; color:#495648; }
+.personal-storage { padding:15px 0 0; }
+.personal-storage h2 { font-size:19px; }
+.stored-resources,.stored-books { display:flex; flex-wrap:wrap; gap:5px 15px; margin:7px 0 12px; padding:0; list-style:none; }
+.stored-resources>div,.stored-books li { display:flex; gap:5px; align-items:center; }
+.stored-resources img,.stored-resources .wood,.stored-books img { width:23px; height:27px; object-fit:contain; }
+.stored-tiles { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:9px; border-top:1px solid var(--line); padding-top:10px; }
+.stored-tiles figure { display:inline-flex; flex-direction:column; vertical-align:top; gap:2px; max-width:105px; padding:0 5px 6px 0; }
+.stored-tiles img { align-self:flex-start; max-width:100%; height:65px; }
+.stored-tiles img[src*="/round-bonus/"] { height:90px; }
+.science-figure { margin-top:10px; }
+@container (max-width:600px) {
+  .planning-grid { grid-template-columns:minmax(0,1fr); }
+  .stock-workshop .stock-slot { flex:1; max-width:40px; }
+  .faction-head { align-items:flex-start; gap:8px; }
+  .stock-slot .wood { width:21px; }
 }

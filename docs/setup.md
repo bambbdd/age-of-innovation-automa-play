@@ -49,3 +49,5 @@ const position = placeStartingBuildings(deal, {
 삽당 도구 1·2·3개 도안은 [공식 영문 규칙서 11쪽](https://www.feuerland-spiele.de/fileadmin/game/Age_of_Innovation/Age_of_Innovation_rules_EN_V1-1_low.pdf#page=11)의 지형 변환 트랙에서 각 비용 칸을 잘라 사용한다.
 
 열쇠 아이콘은 기본 규칙서 2쪽의 도시 타일 뒷면에서 가져왔다. 공용 행동을 닫는 X토큰은 3쪽 구성물 그림을 사용하며, 2인용 혁신·적성 판면과 책 행동판은 헬퍼의 원본 이미지다.
+
+개인 보드의 나뭇결과 파워 그릇 세 개는 기본 규칙서 2쪽의 계획판에서, 플레이어 종족 그림 12종은 20쪽의 종족 타일에서 가져왔다.

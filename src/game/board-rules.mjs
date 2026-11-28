@@ -6,11 +6,15 @@ const neighbors = new Map(smallBoard.map(cell => [cell.id, smallBoard.filter(oth
   Math.max(Math.abs(cell.q - other.q), Math.abs(cell.r - other.r),
     Math.abs(cell.q + cell.r - other.q - other.r)) === 1).map(other => other.id)]))
 const power = { workshop: 1, guild: 2, school: 2, palace: 3, university: 3, tower: 2, monument: 4 }
-const supply = { workshop: 9, guild: 4, school: 3, palace: 1, university: 1 }
+export const buildingSupply = { workshop: 9, guild: 4, school: 3, palace: 1, university: 1 }
 const upgrades = { workshop: ['guild'], guild: ['palace', 'school'], school: ['university'] }
 
+export function placedFromSupply(position, owner, type) {
+  return position.buildings.filter(b => b.owner === owner && b.building === type && !b.neutral).length
+}
+
 export function pieceAvailable(position, owner, type) {
-  return position.buildings.filter(b => b.owner === owner && b.building === type && !b.neutral).length < supply[type]
+  return placedFromSupply(position,owner,type) < buildingSupply[type]
 }
 
 export function availableUpgrades(position, piece) {

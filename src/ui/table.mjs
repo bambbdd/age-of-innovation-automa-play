@@ -11,7 +11,8 @@ import { roundTiles, finalTiles, roundScoring } from '../game/score-tiles.mjs'
 import { terrainAt } from '../game/board-rules.mjs'
 import { hexCenter } from '../render/draw-small-board.mjs'
 import { art, wood, choiceArt, scoreArt, scienceBoard } from './components.mjs'
-import { sharedBoards, inspectedTile, ownedTiles } from './shared-boards.mjs'
+import { sharedBoards, inspectedTile } from './shared-boards.mjs'
+import { personalBoard, personalStorage } from './personal-board.mjs'
 import { categories, choiceRows, boardTargets } from './choices.mjs'
 
 const app = document.querySelector('#app')
@@ -206,7 +207,6 @@ function controls(state) {
 }
 function ledger(s) {
   if (!s) return ''
-  const books=subjects.map(k=>`<li>${art('books',k)}<span>${labels[k]}</span><b>${s.resources.books[k]}권</b></li>`).join('')
   const rounds = s.deal.scoreTiles.rounds.map((id,i)=>{
     const scoring=roundScoring(i+1,roundTiles.find(t=>t.id===id),finalTiles.find(t=>t.id===s.deal.scoreTiles.final))
     const b=scoring.scienceBonus
@@ -220,12 +220,8 @@ function ledger(s) {
   if (special.fallow) factionStatus='휴경지 · '+labels[special.fallow]+' → 황폐지 · '+labels[special.blighted]
   if (special.goals) factionStatus=special.goals.map(id=>(special.completed.includes(id)?'✓ ':'○ ')+achievementNames[id]).join(' / ')
     +' · 먼저 패스 '+special.early+'회, 나중에 패스 '+special.late+'회, 코인 '+special.coins+'개'
-  return `<details class="panel ledger" open><summary>과학과 자원</summary><div class="science-layout">${scienceBoard(s)}<div class="inventory">
-    <h3>내 책</h3><ul class="books">${books}</ul>
-    <h3>발전과 자원</h3><div class="development">${art('ship-level',s.sailing,'항해 '+s.sailing)}${art('spade-cost',3-s.terraforming,'삽당 도구 '+(3-s.terraforming))}<span class="key-count">${art('resources','key','열쇠')}<b>${s.keys}</b></span></div>
-    <p class="summary-line">파워 그릇 I · II · III &nbsp; <b>${s.resources.bowls.join(' / ')}</b></p>
-    <h3>내 보너스 타일</h3><div class="held-bonus">${art('round-bonus',s.bonusTiles.player)}<span>${bonusTiles[s.bonusTiles.player].label}</span></div></div></div>
-    ${ownedTiles(s)}
+  return `<details class="panel ledger planning-area" open><summary>개인 보드와 자원</summary>${personalBoard(s)}${personalStorage(s)}</details>
+    <details class="panel ledger" open><summary>과학 트랙</summary>${scienceBoard(s)}
     ${factionStatus?`<p class="summary-line"><b>${botName()}</b> · ${factionStatus}</p>`:''}</details>
     <details class="panel ledger"><summary>라운드별 득점과 과학 보너스</summary><table><tr><th>라운드</th><th>타일</th><th>행동 득점</th><th>종료 보너스</th></tr>${rounds}</table></details>`
 }
