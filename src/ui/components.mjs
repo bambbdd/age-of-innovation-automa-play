@@ -1,4 +1,5 @@
 import { labels, subjects } from '../game/first-game.mjs'
+import { spadesBetween, terrainCircle } from '../game/board-rules.mjs'
 
 const root = './public/components'
 const pieceColors = ['desert','wasteland','swamp','lake','forest','plains','mountain','neutral']
@@ -20,6 +21,19 @@ export function scoreArt(deal, round) {
   const base = art('round-score', id + (round <= 3 ? '-123' : '-456'))
   const overlay = round === 6 ? art('round-score-final',deal.scoreTiles.final) : ''
   return `<span class="score-tile">${base}${overlay}</span>`
+}
+
+export function terrainWheel(home) {
+  const start=terrainCircle.indexOf(home)
+  const tiles=terrainCircle.map((_,step)=>{
+    const terrain=terrainCircle[(start+step)%terrainCircle.length]
+    const angle=2*Math.PI*step/terrainCircle.length
+    const x=50+38*Math.sin(angle), y=50-38*Math.cos(angle)
+    const cost=spadesBetween(terrain,home)
+    const label=labels[terrain]+(step===0?' (고향)':'')+' · 삽 '+cost+'개'
+    return `<li style="left:${x}%;top:${y}%"><span role="img" aria-label="${label}" title="${label}">${art('terrain',terrain)}<b aria-hidden="true">${cost}</b></span></li>`
+  }).join('')
+  return `<section class="terraform-guide"><h2>고향 지형 개척</h2><div class="terrain-wheel"><span class="wheel-unit">필요한 삽</span><ul aria-label="고향 지형(${labels[home]})으로 개척하는 비용">${tiles}</ul></div></section>`
 }
 
 export function choiceArt(a,s) {

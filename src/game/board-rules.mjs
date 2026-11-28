@@ -192,7 +192,8 @@ export function areaScoring(position, playerSailing, { flight = false } = {}) {
   return { sizes, points: { player, automa: 30 - player } }
 }
 
-const terrainCircle = ['desert', 'wasteland', 'mountain', 'forest', 'lake', 'swamp', 'plains']
+// Clockwise on the printed planning display (basic rules, p. 11).
+export const terrainCircle = ['desert', 'plains', 'swamp', 'lake', 'forest', 'mountain', 'wasteland']
 
 export function canTravel(position, hex, travel) {
   if (!(travel === 'tunnel' && position.playerFaction === 'moles' || travel === 'flight' && position.palace === 9)) return false

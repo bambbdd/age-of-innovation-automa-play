@@ -10,7 +10,7 @@ import { createSetupDeal, difficultyLevels, initialAutomaWorkshops } from '../ga
 import { roundTiles, finalTiles, roundScoring } from '../game/score-tiles.mjs'
 import { terrainAt } from '../game/board-rules.mjs'
 import { hexCenter } from '../render/draw-small-board.mjs'
-import { art, wood, choiceArt, scoreArt, scienceBoard } from './components.mjs'
+import { art, wood, choiceArt, scoreArt, scienceBoard, terrainWheel } from './components.mjs'
 import { sharedBoards, inspectedTile } from './shared-boards.mjs'
 import { personalBoard, personalStorage } from './personal-board.mjs'
 import { categories, choiceRows, boardTargets } from './choices.mjs'
@@ -228,6 +228,11 @@ function sciencePanel(s) {
   return `<details class="panel shared-panel" open><summary>과학 트랙</summary>${scienceBoard(s)}
     ${factionStatus?`<p class="summary-line"><b>${botName()}</b> · ${factionStatus}</p>`:''}</details>`
 }
+function roundOverview(s) {
+  if (!s?.scoring || s.final) return ''
+  const points=s.scoring.triggers.map(t=>`<p class="summary-line">${labels[t.action]??t.action} · ${t.points}점</p>`).join('')
+  return `<div class="panel round-overview"><section><h2>라운드 득점</h2>${scoreArt(s.deal,s.round)}${points}<p class="muted">${botName()} 패스 · ${s.scoring.automaPoints}점</p></section>${terrainWheel(s.playerTerrain)}</div>`
+}
 function scores(state) {
   const f=state.final, [p,b]=[state.points.player,state.points.automa]
   const points=[['대국 중 승점',f.before],['영역',f.area.points],...subjects.map(k=>[labels[k],f.science[k]]),['잔여 자원',{player:f.resources,automa:0}],['오토마 종족 보너스',{player:0,automa:f.automaFaction}],['합계',state.points]]
@@ -259,8 +264,7 @@ function render() {
   if (view==='records') content+=records()
   else if (view==='guide') content+=`<article class="panel article"><h2>대국 설정</h2><p>난이도와 오토마 종족을 정하고, 배분된 세 계획판에서 플레이어 종족을 고르세요. 새 카드 배분은 선택 가능한 종족과 타일을 바꿉니다.</p><h2>내 차례</h2><p>지도에서 칸을 눌러 지형 변환·건설·개량 비용을 확인하세요. 과학·발전, 혁신·책, 파워 행동도 한 차례에 하나씩 선택할 수 있습니다. 자원 교환, 본행동, 후속 선택은 지도와 자원에 바로 표시됩니다. 모두 마친 뒤 차례 마치기와 확정을 누르면 이번 차례 전체가 저장됩니다. 되돌리기를 누르면 차례 시작 상태로 돌아갑니다.</p><h2>오토마와 패스</h2><p>오토마 차례에는 행동 카드와 지원 카드를 공개합니다. 인접 건물이 주는 파워는 수락하거나 거절할 수 있습니다. 먼저 패스한 쪽이 다음 라운드를 시작합니다.</p><h2>최종 점수</h2><p>6라운드에 양측이 패스하면 가장 큰 연결 영역, 네 과학 분야의 순위, 남은 자원을 정산합니다. 승점이 같으면 공동 승리입니다.</p></article>`
   else {
-    const scoring=shown?.scoring && !shown.final ? panel('라운드 득점',scoreArt(shown.deal,shown.round)+shown.scoring.triggers.map(t=>`<p class="summary-line">${labels[t.action]??t.action} · ${t.points}점</p>`).join('')+`<p class="muted">${botName()} 패스 · ${shown.scoring.automaPoints}점</p>`) : ''
-    content+=`${shown?.final?scores(shown):''}<div class="layout"><div>${map(shown)}${ledger(shown)}</div><aside class="side">${roster(shown)}${shown ? (preview?.ready?'':controls(shown))+(preview?previewControls():saveControls()) : setup()}<div class="round-boards">${scoring}${supply(shown)}${sciencePanel(shown)}</div></aside></div>`
+    content+=`${shown?.final?scores(shown):''}<div class="layout"><div>${map(shown)}${ledger(shown)}</div><aside class="side">${roster(shown)}${shown ? (preview?.ready?'':controls(shown))+(preview?previewControls():saveControls()) : setup()}<div class="round-boards">${roundOverview(shown)}${supply(shown)}${sciencePanel(shown)}</div></aside></div>`
   }
   app.innerHTML=content
 }
